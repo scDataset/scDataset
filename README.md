@@ -4,6 +4,8 @@ This is the codebase for the paper:
 
 **"scDataset: Scalable Data Loading for Deep Learning on Large-Scale Single-Cell Omics"**
 
+![scDataset architecture](figures/scdataset.png)
+
 ## Installation
 
 Install the required dependencies using:
