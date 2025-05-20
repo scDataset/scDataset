@@ -1,0 +1,10 @@
+# Output paths
+results_path: "/home/kidara/raid/volume/scDataset/experiments/block_size_fetch_factor_eval_anncollection_random.csv"
+
+# Test parameters
+batch_sizes: [64]
+block_sizes: [1, 2, 4, 8, 16, 32, 64]
+fetch_factors: [1, 2, 4, 8, 16, 32, 64]
+num_workers_options: [0]
+collection_type: "anncollection"
+test_modes: "random"

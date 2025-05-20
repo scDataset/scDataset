@@ -1,0 +1,4 @@
+python evaluate_scdataset.py --config experiments/block_size_fetch_factor_eval_huggingface_random.yaml > experiments/block_size_fetch_factor_eval_huggingface_random.out 2> experiments/block_size_fetch_factor_eval_huggingface_random.err && \
+python evaluate_scdataset.py --config experiments/block_size_fetch_factor_eval_bionemo_random.yaml > experiments/block_size_fetch_factor_eval_bionemo_random.out 2> experiments/block_size_fetch_factor_eval_bionemo_random.err && \
+python evaluate_scdataset.py --config experiments/block_size_fetch_factor_eval_anncollection_random.yaml > experiments/block_size_fetch_factor_eval_anncollection_random.out 2> experiments/block_size_fetch_factor_eval_anncollection_random.err && \
+python evaluate_scdataset.py --config experiments/high_throughput_eval_anncollection_random.yaml > experiments/high_throughput_eval_anncollection_random.out 2> experiments/high_throughput_eval_anncollection_random.err
