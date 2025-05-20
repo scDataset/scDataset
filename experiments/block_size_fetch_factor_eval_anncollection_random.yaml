@@ -1,5 +1,5 @@
 # Output paths
-results_path: "/home/kidara/raid/volume/scDataset/experiments/block_size_fetch_factor_eval_anncollection_random.csv"
+results_path: "./experiments/block_size_fetch_factor_eval_anncollection_random.csv"
 
 # Test parameters
 batch_sizes: [64]

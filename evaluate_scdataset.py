@@ -1,9 +1,9 @@
 # Define dataset paths
 HUGGINGFACE_DATASET_PATH = "tahoebio/Tahoe-100m"
-H5AD_FILES_PATH = "/home/kidara/raid/volume/vevo-data/2025-02-25/original_h5ad"
-BIONEMO_DATA_PATH = "/home/kidara/raid/volume/vevo-data/2025-02-25/scdl_out"
+H5AD_FILES_PATH = "/path-to-data/2025-02-25/original_h5ad"
+BIONEMO_DATA_PATH = "/path-to-data/2025-02-25/scdl_out"
 import os
-os.environ["HF_HOME"] = "/home/kidara/raid/volume/.cache/huggingface"
+os.environ["HF_HOME"] = "/path-to-data/.cache/huggingface"
 
 import time
 import pandas as pd
@@ -93,7 +93,7 @@ def load_config(config_path):
         print(f"Error loading config file: {e}")
         print("Using default configuration...")
         return {
-            "results_path": "/home/kidara/raid/volume/vevo-project/data_loader_performance.csv",
+            "results_path": "/path-to-data/data_loader_performance.csv",
             "batch_sizes": [16, 32, 64, 128, 256],
             "block_sizes": [1, 2, 4, 8, 16, 32, 64, 128],
             "fetch_factors": [1, 2, 4, 8, 16],
@@ -254,7 +254,7 @@ def run_evaluations(config_path):
     block_sizes = config.get("block_sizes", [1, 2, 4, 8, 16, 32, 64, 128])
     fetch_factors = config.get("fetch_factors", [1, 2, 4, 8, 16])
     num_workers_options = config.get("num_workers_options", [0, 1, 2, 4, 8, 16])
-    results_path = config.get("results_path", "/home/kidara/raid/volume/vevo-project/data_loader_performance.csv")
+    results_path = config.get("results_path", "/path-to-data/data_loader_performance.csv")
     
     # Set up results storage
     results = []
