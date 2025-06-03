@@ -220,24 +220,30 @@ class scDataset(IterableDataset):
                         
                     yield batch_data
 
-    def train_mode(self):
+    def set_mode(self, mode):
         """
-        Set dataset to training mode (shuffle, drop_last, etc.).
+        Set dataset mode.
+
+        Args:
+            mode (str): One of 'train', 'training', 'eval', 'val', 'evaluation', 'test', 'testing'.
+
+        Raises:
+            ValueError: If mode is not recognized.
         """
-        self.shuffle = True
-        self.drop_last = True
-        self.sort_before_fetch = True
-        self.shuffle_before_yield = True
-        
-    def eval_mode(self):
-        """
-        Set dataset to evaluation mode (no shuffle, keep all batches).
-        """
-        self.shuffle = False
-        self.drop_last = False
-        self.sort_before_fetch = False
-        self.shuffle_before_yield = False
-        
+        mode = mode.lower()
+        if mode in ['train', 'training']:
+            self.shuffle = True
+            self.drop_last = True
+            self.sort_before_fetch = True
+            self.shuffle_before_yield = True
+        elif mode in ['eval', 'val', 'evaluation', 'test', 'testing']:
+            self.shuffle = False
+            self.drop_last = False
+            self.sort_before_fetch = False
+            self.shuffle_before_yield = False
+        else:
+            raise ValueError(f"Unknown mode: {mode!r}. Must be 'train', 'training', 'eval', 'val', 'evaluation', 'test', or 'testing'.")
+
     def subset(self, indices: Union[List[int], np.ndarray]):
         """
         Subset the dataset to only include the specified indices.

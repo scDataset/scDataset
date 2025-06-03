@@ -16,7 +16,7 @@ import argparse
 from torch.utils.data import DataLoader
 from anndata.experimental import AnnLoader, AnnCollection
 from tqdm.auto import tqdm
-from scdataset import scDataset
+from src.scdataset.scdataset import scDataset
 from scipy import stats
 from datasets import load_dataset
 from typing import Union, Sequence
