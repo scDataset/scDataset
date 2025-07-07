@@ -86,17 +86,13 @@ class scDataset(IterableDataset):
         """
         Return the number of batches in the dataset.
         """
+        n = len(self.indices)
         if self.shuffle and self.drop_last:
-            # When shuffling and dropping last, we remove remainder to make dataset
-            # size divisible by fetch_size
-            adjusted_size = len(self.indices) - (len(self.indices) % self.fetch_size)
-            return adjusted_size // self.batch_size
-        elif not self.drop_last:
-            # Include the last batch even if incomplete
-            return (len(self.indices) + self.batch_size - 1) // self.batch_size
-        else:
-            # Just drop the last incomplete batch
-            return len(self.indices) // self.batch_size
+            return (n // self.fetch_size * self.fetch_size) // self.batch_size
+        if not (not self.shuffle and not self.drop_last):
+            warnings.warn("__len__ is only correctly implemented for shuffle=True and drop_last=True or not shuffling and not dropping last batch.")
+        return (n + self.batch_size - 1) // self.batch_size
+
         
     def __iter__(self):
         """
@@ -177,34 +173,30 @@ class scDataset(IterableDataset):
                     yield batch_data
                 
         else: # Not shuffling indices before fetching
+            n = len(indices)
+            fetch_size = self.fetch_size
+            num_fetches = (n + fetch_size - 1) // fetch_size
+            fetch_ranges = [(i * fetch_size, min((i + 1) * fetch_size, n)) for i in range(num_fetches)]
             if worker_info is not None:
-                per_worker = len(indices) // worker_info.num_workers
-                remainder = len(indices) % worker_info.num_workers
-                
-                # Distribute remainder among workers
+                per_worker = num_fetches // worker_info.num_workers
+                remainder = num_fetches % worker_info.num_workers
                 if worker_info.id < remainder:
-                    # First 'remainder' workers get one extra fetch
                     start = worker_info.id * (per_worker + 1)
                     end = start + per_worker + 1
                 else:
-                    # Other workers get the base number of fetches
                     start = worker_info.id * per_worker + remainder
                     end = start + per_worker
-                    
-                indices = indices[start:end]
-
-            for i in range(0, len(indices), self.fetch_size):
-                ids = indices[i:i + self.fetch_size]
+                fetch_ranges = fetch_ranges[start:end]
+            for fetch_start, fetch_end in fetch_ranges:
+                ids = indices[fetch_start:fetch_end]
                 # Use custom fetch callback if provided, otherwise use default indexing
                 if self.fetch_callback is not None:
                     data = self.fetch_callback(self.collection, ids)
                 else:
                     data = self.collection[ids]
-                
                 # Call fetch transform if provided
                 if self.fetch_transform is not None:
                     data = self.fetch_transform(data)
-                
                 # Yield batches
                 for j in range(0, len(ids), self.batch_size):
                     # Use custom batch callback if provided, otherwise use default indexing
@@ -213,11 +205,9 @@ class scDataset(IterableDataset):
                         batch_data = self.batch_callback(data, batch_indices)
                     else:
                         batch_data = data[j:j + self.batch_size]
-                    
                     # Call batch transform if provided
                     if self.batch_transform is not None:
                         batch_data = self.batch_transform(batch_data)
-                        
                     yield batch_data
 
     def set_mode(self, mode):
@@ -261,8 +251,9 @@ class scDataset(IterableDataset):
                 raise TypeError("All elements in indices must be integers")
         elif not np.issubdtype(indices.dtype, np.integer):
             raise TypeError("Numpy array must contain integers")
-            
-        if any(i < 0 or i >= len(self.collection) for i in indices):
+        
+        len_indices = len(self.collection)
+        if any(i < 0 or i >= len_indices for i in indices):
             raise IndexError("Indices out of bounds")
         
         self.indices = np.array(indices)
