@@ -1,0 +1,35 @@
+name: Build and Deploy Sphinx Docs
+
+on:
+  push:
+    branches:
+      - main   # or your default branch
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.x'
+
+    - name: Install dependencies
+      run: |
+        pip install sphinx sphinx-autodoc-typehints sphinx_rtd_theme sphinxcontrib-napoleon
+
+    - name: Build docs
+      run: |
+        sphinx-build -b html docs/source docs/build/html
+
+    - name: Deploy to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: docs/build/html
