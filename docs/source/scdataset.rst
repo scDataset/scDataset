@@ -1,29 +1,75 @@
-scdataset package
-=================
+API Reference
+=============
 
-Submodules
-----------
+This section provides detailed documentation for all classes and functions in ``scDataset``.
 
-scdataset.scdataset module
---------------------------
+Main Dataset Class
+------------------
 
-.. automodule:: scdataset.scdataset
+.. currentmodule:: scdataset
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   scDataset
+
+.. autoclass:: scDataset
    :members:
-   :show-inheritance:
    :undoc-members:
+   :show-inheritance:
 
-scdataset.strategy module
--------------------------
+Sampling Strategies
+-------------------
 
-.. automodule:: scdataset.strategy
+.. currentmodule:: scdataset.strategy
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   SamplingStrategy
+   Streaming
+   BlockShuffling
+   BlockWeightedSampling
+   ClassBalancedSampling
+
+Base Strategy Class
+~~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: SamplingStrategy
    :members:
-   :show-inheritance:
    :undoc-members:
+   :show-inheritance:
 
-Module contents
----------------
+Sequential Strategies
+~~~~~~~~~~~~~~~~~~~~~
 
-.. automodule:: scdataset
+.. autoclass:: Streaming
    :members:
-   :show-inheritance:
    :undoc-members:
+   :show-inheritance:
+
+Shuffling Strategies
+~~~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: BlockShuffling
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Weighted Sampling
+~~~~~~~~~~~~~~~~~
+
+.. autoclass:: BlockWeightedSampling
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Class Balanced Sampling
+~~~~~~~~~~~~~~~~~~~~~~~
+
+.. autoclass:: ClassBalancedSampling
+   :members:
+   :undoc-members:
+   :show-inheritance:

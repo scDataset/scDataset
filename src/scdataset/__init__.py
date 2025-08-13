@@ -78,12 +78,11 @@ Performance Tips
 * Use ``fetch_factor > 1`` to fetch multiple batches at once for better I/O
 * Set ``block_size`` in shuffling strategies based on your data access patterns
 * Use ``num_workers > 0`` in DataLoader for parallel data loading
-
-See Also
---------
-* :doc:`/api/index` - Complete API reference
-* :doc:`/examples/index` - Usage examples and tutorials
 """
+# See Also
+# --------
+# * :doc:`/api/index` - Complete API reference
+# * :doc:`/examples/index` - Usage examples and tutorials
 
 from .scdataset import scDataset
 from .strategy import (

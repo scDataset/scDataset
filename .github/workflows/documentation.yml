@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - main   # or your default branch
+  pull_request:
+    branches:
+      - main
 
 jobs:
   build-and-deploy:
@@ -18,17 +21,20 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: '3.x'
+        python-version: '3.10'
 
     - name: Install dependencies
       run: |
-        pip install sphinx sphinx-autodoc-typehints sphinx_rtd_theme sphinxcontrib-napoleon
+        pip install sphinx sphinx-book-theme sphinx-autodoc-typehints
+        pip install -e .
 
     - name: Build docs
       run: |
         sphinx-build -b html docs/source docs/build/html
+        touch docs/build/html/.nojekyll
 
     - name: Deploy to GitHub Pages
+      if: github.ref == 'refs/heads/main'
       uses: peaceiris/actions-gh-pages@v3
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
