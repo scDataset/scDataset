@@ -37,5 +37,9 @@ jobs:
       if: github.ref == 'refs/heads/main'
       uses: peaceiris/actions-gh-pages@v3
       with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
+        personal_token: ${{ secrets.DOCS_DEPLOY_TOKEN }}
+        external_repository: scdataset/scdataset.github.io
+        publish_branch: main
         publish_dir: docs/build/html
+        user_name: 'github-actions[bot]'
+        user_email: 'github-actions[bot]@users.noreply.github.com'
