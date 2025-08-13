@@ -17,6 +17,7 @@ from torch.utils.data import DataLoader
 from anndata.experimental import AnnLoader, AnnCollection
 from tqdm.auto import tqdm
 from src.scdataset.scdataset import scDataset
+from src.scdataset.strategy import Streaming, BlockShuffling
 from scipy import stats
 from datasets import load_dataset
 from typing import Union, Sequence
@@ -64,21 +65,21 @@ def fetch_transform_hf(batch, num_genes=62713):
 def fetch_transform_adata(batch):
     return batch.to_adata()
 
-def fetch_callback_bionemo(self, idx: Union[int, slice, Sequence[int], np.ndarray, torch.Tensor]) -> torch.Tensor:
+def fetch_callback_bionemo(data_collection, idx: Union[int, slice, Sequence[int], np.ndarray, torch.Tensor]) -> torch.Tensor:
     """Fetch callback for bionemo dataset when used with scDataset."""
     if isinstance(idx, int):
         # Single index
-        return collate_sparse_matrix_batch([self.__getitem__(idx)]).to_dense()
+        return collate_sparse_matrix_batch([data_collection.__getitem__(idx)]).to_dense()
     elif isinstance(idx, slice):
         # Slice: convert to a list of indices
-        indices = list(range(*idx.indices(len(self))))
-        batch_tensors = [self.__getitem__(i) for i in indices]
+        indices = list(range(*idx.indices(len(data_collection))))
+        batch_tensors = [data_collection.__getitem__(i) for i in indices]
         return collate_sparse_matrix_batch(batch_tensors).to_dense()
     elif isinstance(idx, (list, np.ndarray, torch.Tensor)):
         # Batch indexing
         if isinstance(idx, torch.Tensor):
             idx = idx.tolist()
-        batch_tensors = [self.__getitem__(int(i)) for i in idx]
+        batch_tensors = [data_collection.__getitem__(int(i)) for i in idx]
         return collate_sparse_matrix_batch(batch_tensors).to_dense()
     else:
         raise TypeError(f"Unsupported index type: {type(idx)}")
@@ -455,9 +456,9 @@ def run_evaluations(config_path):
                     del loader
                     gc.collect()
     
-    # Test scDataset in train mode (random)
+    # Test scDataset in random mode using BlockShuffling strategy
     if test_modes in ["all", "random"]:
-        print("\nTesting scDataset in train mode (random)...")
+        print("\nTesting scDataset with BlockShuffling strategy (random mode)...")
         for batch_size in batch_sizes:
             for block_size in block_sizes:
                 for fetch_factor in fetch_factors:
@@ -476,17 +477,17 @@ def run_evaluations(config_path):
                         if collection_type == "bionemo":
                             extra_params["fetch_callback"] = fetch_callback_bionemo
                         
+                        # Create BlockShuffling strategy
+                        strategy = BlockShuffling(block_size=block_size)
+                        
                         dataset = scDataset(
                             data_collection=data_collection,
+                            strategy=strategy,
                             batch_size=batch_size,
-                            block_size=block_size,
                             fetch_factor=fetch_factor,
                             fetch_transform=fetch_transform,
                             **extra_params
                         )
-                        
-                        # Set to train mode for random access
-                        dataset.train_mode()
                         
                         loader = DataLoader(
                             dataset,
@@ -495,7 +496,7 @@ def run_evaluations(config_path):
                             prefetch_factor=prefetch_factor,
                         )
                         
-                        desc = f"scDataset (random) - batch={batch_size}, block={block_size}, ff={fetch_factor}, w={num_workers}"
+                        desc = f"scDataset (BlockShuffling) - batch={batch_size}, block={block_size}, ff={fetch_factor}, w={num_workers}"
                         result = evaluate_loader(loader, description=desc)
                         
                         results.append({
@@ -516,53 +517,65 @@ def run_evaluations(config_path):
                         del dataset, loader
                         gc.collect()
     
-    # Test scDataset in eval mode (stream)
+    # Test scDataset in streaming mode using Streaming strategy
     if test_modes in ["all", "stream"]:
-        print("\nTesting scDataset in eval mode (stream)...")
+        print("\nTesting scDataset with Streaming strategy (stream mode)...")
         for batch_size in batch_sizes:
-            for block_size in block_sizes:
-                for fetch_factor in fetch_factors:
-                    for num_workers in num_workers_options:
-                        prefetch_factor = fetch_factor + 1 if num_workers > 0 else None
-                        
-                        dataset = scDataset(
-                            data_collection=data_collection,
-                            batch_size=batch_size,
-                            block_size=block_size,
-                            fetch_factor=fetch_factor,
-                            fetch_transform=fetch_transform_hf if collection_type == "huggingface" else fetch_transform_adata,
-                        )
-                        
-                        # Set to eval mode for streaming
-                        dataset.eval_mode()
-                        
-                        loader = DataLoader(
-                            dataset,
-                            batch_size=None,
-                            num_workers=num_workers,
-                            prefetch_factor=prefetch_factor,
-                        )
-                        
-                        desc = f"scDataset (stream) - batch={batch_size}, block={block_size}, ff={fetch_factor}, w={num_workers}"
-                        result = evaluate_loader(loader, description=desc)
-                        
-                        results.append({
-                            "mode": "stream",
-                            "loader": "scDataset",  # Fixed typo in loader name
-                            "collection_type": collection_type,
-                            "batch_size": batch_size,
-                            "block_size": block_size,
-                            "fetch_factor": fetch_factor,
-                            "num_workers": num_workers,
-                            "prefetch_factor": prefetch_factor,
-                            **result
-                        })
-                        
-                        # Save results after each experiment
-                        save_results_to_csv(results, results_path)
-                        
-                        del dataset, loader
-                        gc.collect()
+            for fetch_factor in fetch_factors:
+                for num_workers in num_workers_options:
+                    prefetch_factor = fetch_factor + 1 if num_workers > 0 else None
+                    
+                    # Choose appropriate fetch transform based on collection type
+                    if collection_type == "huggingface":
+                        fetch_transform = fetch_transform_hf
+                    elif collection_type == "anncollection":
+                        fetch_transform = fetch_transform_adata
+                    elif collection_type == "bionemo":
+                        fetch_transform = None
+                    
+                    extra_params = {}
+                    if collection_type == "bionemo":
+                        extra_params["fetch_callback"] = fetch_callback_bionemo
+                    
+                    # Create Streaming strategy
+                    strategy = Streaming()
+                    
+                    dataset = scDataset(
+                        data_collection=data_collection,
+                        strategy=strategy,
+                        batch_size=batch_size,
+                        fetch_factor=fetch_factor,
+                        fetch_transform=fetch_transform,
+                        **extra_params
+                    )
+                    
+                    loader = DataLoader(
+                        dataset,
+                        batch_size=None,
+                        num_workers=num_workers,
+                        prefetch_factor=prefetch_factor,
+                    )
+                    
+                    desc = f"scDataset (Streaming) - batch={batch_size}, ff={fetch_factor}, w={num_workers}"
+                    result = evaluate_loader(loader, description=desc)
+                    
+                    results.append({
+                        "mode": "stream",
+                        "loader": "scDataset",
+                        "collection_type": collection_type,
+                        "batch_size": batch_size,
+                        "block_size": None,  # Not applicable for streaming
+                        "fetch_factor": fetch_factor,
+                        "num_workers": num_workers,
+                        "prefetch_factor": prefetch_factor,
+                        **result
+                    })
+                    
+                    # Save results after each experiment
+                    save_results_to_csv(results, results_path)
+                    
+                    del dataset, loader
+                    gc.collect()
     
     # Load final results for display and visualization
     df = pd.read_csv(results_path)
