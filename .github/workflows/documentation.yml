@@ -32,6 +32,12 @@ jobs:
 
     - name: Build docs
       run: |
+        # Set version environment variable for proper version switcher
+        if [[ $GITHUB_REF == refs/heads/main ]]; then
+          export DOCS_VERSION=latest
+        elif [[ $GITHUB_REF == refs/tags/v* ]]; then
+          export DOCS_VERSION=stable
+        fi
         sphinx-build -b html docs/source docs/build/html
         touch docs/build/html/.nojekyll
 
@@ -76,11 +82,13 @@ jobs:
         [
           {
             "version": "stable",
-            "title": "stable"
+            "title": "stable",
+            "url": "https://scdataset.github.io/stable/"
           },
           {
             "version": "latest", 
-            "title": "latest"
+            "title": "latest",
+            "url": "https://scdataset.github.io/latest/"
           }
         ]
         EOF

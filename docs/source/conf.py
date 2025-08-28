@@ -87,7 +87,7 @@ html_theme_options = {
     # Version switcher
     'switcher': {
         'json_url': 'https://scdataset.github.io/versions.json',
-        'version_match': 'latest',  # Default to latest, will be updated by CI
+        'version_match': os.environ.get('DOCS_VERSION', 'latest'),
     },
     'navbar_end': ['version-switcher', 'navbar-icon-links'],
 }
