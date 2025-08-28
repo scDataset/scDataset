@@ -31,13 +31,13 @@ Working with AnnData
    # Create dataset with block shuffling
    dataset = scDataset(
        adata,
-       BlockShuffling(block_size=128),
+       BlockShuffling(block_size=8),
        batch_size=64,
        fetch_callback=fetch_anndata
    )
    
    # Use with DataLoader
-   loader = DataLoader(dataset, num_workers=4)
+   loader = DataLoader(dataset, batch_size=None, num_workers=4)
    
    for batch in loader:
        print(f"Processing batch of shape: {batch.shape}")
@@ -59,14 +59,16 @@ Class-Balanced Training
    strategy = ClassBalancedSampling(
        cell_types, 
        total_size=10000,  # Generate 10k balanced samples per epoch
-       block_size=64
+       block_size=8
    )
    
    dataset = scDataset(adata, strategy, batch_size=32, fetch_callback=fetch_anndata)
-   
+
+   loader = DataLoader(dataset, batch_size=None, num_workers=4)
+
    # Training loop with balanced batches
    for epoch in range(10):
-       for batch in DataLoader(dataset):
+       for batch in loader:
            # Each batch will be class-balanced
            train_step(batch)
 
@@ -88,7 +90,7 @@ Multi-Modal Data
    
    dataset = scDataset(
        adata,
-       BlockShuffling(block_size=64),
+       BlockShuffling(block_size=8),
        batch_size=32,
        fetch_callback=fetch_multimodal
    )
@@ -114,6 +116,7 @@ Memory-Efficient Data Loading
    # Configure DataLoader for optimal performance
    loader = DataLoader(
        dataset,
+       batch_size=None,
        num_workers=12,          # Use multiple workers
        prefetch_factor=17,      # fetch_factor + 1
        pin_memory=True,        # For GPU training
@@ -133,7 +136,7 @@ Subset Training and Validation
    # Training dataset
    train_dataset = scDataset(
        data,
-       BlockShuffling(block_size=64),
+       BlockShuffling(indices=train_idx, block_size=8),
        batch_size=64
    )
    
@@ -143,15 +146,21 @@ Subset Training and Validation
        Streaming(indices=val_idx),
        batch_size=64
    )
-   
+
+   # Training loader
+   train_loader = DataLoader(train_dataset, batch_size=None)
+
+   # Validation loader
+   val_loader = DataLoader(val_dataset, batch_size=None)
+
    # Training loop
    for epoch in range(num_epochs):
        # Training
-       for batch in DataLoader(train_dataset):
+       for batch in train_loader:
            train_step(batch)
        
        # Validation
-       for batch in DataLoader(val_dataset):
+       for batch in val_loader:
            val_step(batch)
 
 Custom Data Transformations
@@ -172,7 +181,7 @@ On-the-Fly Normalization
    
    dataset = scDataset(
        data,
-       BlockShuffling(block_size=128),
+       BlockShuffling(block_size=8),
        batch_size=64,
        batch_transform=lambda x: standardize_genes(log_normalize(x))
    )
@@ -199,8 +208,8 @@ Data Augmentation
    
    dataset = scDataset(
        data,
-       BlockShuffling(block_size=64),
-       batch_size=32,
+       BlockShuffling(block_size=8),
+       batch_size=64,
        batch_transform=augment_batch
    )
 
@@ -213,26 +222,50 @@ Basic Usage
 .. code-block:: python
 
    from datasets import load_dataset
+   from torch.utils.data import DataLoader
    
    # Load a HuggingFace dataset
-   hf_dataset = load_dataset("your_username/your_dataset", split="train")
+   hf_dataset = load_dataset("imdb", split="train[:1000]")
    
-   # Simple usage
-   dataset = scDataset(hf_dataset, Streaming(), batch_size=32)
+   # Custom batch callback for HuggingFace datasets
+   def extract_hf_batch(fetched_data, batch_indices):
+       """Extract a batch from HuggingFace dataset fetched data."""
+       batch = {}
+       for key, values in fetched_data.items():
+           batch[key] = [values[i] for i in batch_indices]
+       return batch
    
-   for batch in DataLoader(dataset):
+   # Create dataset with custom batch callback
+   dataset = scDataset(
+       hf_dataset, 
+       Streaming(), 
+       batch_size=64,
+       batch_callback=extract_hf_batch
+   )
+   
+   for batch in DataLoader(dataset, batch_size=None):
        # batch will be a dictionary with dataset features
-       print(batch.keys())
+       print("Batch keys:", batch.keys())
+       print("Batch size:", len(batch['text']))
+       break
 
 Custom Processing for HuggingFace Data
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: python
 
-   def process_hf_batch(batch):
+   def extract_hf_batch(fetched_data, batch_indices):
+       """Extract a batch from HuggingFace dataset fetched data."""
+       batch = {}
+       for key, values in fetched_data.items():
+           batch[key] = [values[i] for i in batch_indices]
+       return batch
+
+   def process_hf_batch(batch_dict):
+       """Process HuggingFace batch into numpy arrays."""
        # Extract and process specific features
-       features = np.array(batch['expression'])
-       labels = np.array(batch['cell_type_id'])
+       features = np.array(batch_dict['expression'])
+       labels = np.array(batch_dict['cell_type_id'])
        
        return {
            'features': features.astype(np.float32),
@@ -241,8 +274,9 @@ Custom Processing for HuggingFace Data
    
    dataset = scDataset(
        hf_dataset,
-       BlockShuffling(block_size=128),
-       batch_size=64,
+       BlockShuffling(block_size=64),
+       batch_size=32,
+       batch_callback=extract_hf_batch,
        batch_transform=process_hf_batch
    )
 
@@ -272,7 +306,7 @@ Integration with PyTorch Lightning
            # Create datasets
            self.train_dataset = scDataset(
                self.data,
-               BlockShuffling(block_size=128),
+               BlockShuffling(block_size=8),
                batch_size=self.batch_size
            )
            
@@ -313,7 +347,7 @@ Custom Weighted Sampling
    strategy = BlockWeightedSampling(
        weights=weights,
        total_size=5000,
-       block_size=64,
+       block_size=8,
        replace=True
    )
    

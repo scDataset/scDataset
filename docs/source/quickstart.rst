@@ -26,13 +26,13 @@ The simplest way to use ``scDataset`` is as a drop-in replacement for your exist
    data = np.random.randn(1000, 100)  # 1000 samples, 100 features
    
    # Create scDataset with streaming strategy
-   dataset = scDataset(data, Streaming(), batch_size=32)
+   dataset = scDataset(data, Streaming(), batch_size=64)
    
    # Use with DataLoader (note: batch_size=None)
-   loader = DataLoader(dataset, batch_size=None, num_workers=2)
+   loader = DataLoader(dataset, batch_size=None, num_workers=4)
    
    for batch in loader:
-       print(f"Batch shape: {batch.shape}")  # (32, 100)
+       print(f"Batch shape: {batch.shape}")  # (64, 100)
        # Your training code here
        break
 
@@ -54,7 +54,13 @@ Streaming (Sequential)
    
    # Sequential access without shuffling
    strategy = Streaming()
-   dataset = scDataset(data, strategy, batch_size=32)
+   dataset = scDataset(data, strategy, batch_size=64)
+   
+   # Sequential access with buffer-level shuffling (like Ray Dataset/WebDataset)
+   strategy = Streaming(shuffle=True)
+   dataset = scDataset(data, strategy, batch_size=64)
+   # This shuffles batches within each fetch buffer while maintaining
+   # sequential order between buffers
 
 Block Shuffling
 ~~~~~~~~~~~~~~~
@@ -64,8 +70,8 @@ Block Shuffling
    from scdataset import BlockShuffling
    
    # Shuffle in blocks for better I/O while maintaining some randomness
-   strategy = BlockShuffling(block_size=64)
-   dataset = scDataset(data, strategy, batch_size=32)
+   strategy = BlockShuffling(block_size=8)
+   dataset = scDataset(data, strategy, batch_size=64)
 
 Weighted Sampling
 ~~~~~~~~~~~~~~~~~
@@ -74,10 +80,14 @@ Weighted Sampling
 
    from scdataset import BlockWeightedSampling
    
-   # Sample with custom weights
+   # Sample with custom weights (e.g., higher weight for rare samples)
    weights = np.random.rand(len(data))  # Custom weights per sample
-   strategy = BlockWeightedSampling(weights=weights, total_size=500)
-   dataset = scDataset(data, strategy, batch_size=32)
+   strategy = BlockWeightedSampling(
+       weights=weights, 
+       total_size=10000,  # Generate 10000 samples per epoch
+       block_size=8
+   )
+   dataset = scDataset(data, strategy, batch_size=64)
 
 Class Balanced Sampling
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -88,8 +98,8 @@ Class Balanced Sampling
    
    # Automatically balance classes
    labels = np.random.choice(['A', 'B', 'C'], size=len(data))
-   strategy = ClassBalancedSampling(labels, total_size=600)
-   dataset = scDataset(data, strategy, batch_size=32)
+   strategy = ClassBalancedSampling(labels, total_size=10000)
+   dataset = scDataset(data, strategy, batch_size=64)
 
 Working with Different Data Formats
 ------------------------------------
@@ -132,7 +142,7 @@ HuggingFace Datasets
    from datasets import load_dataset
    
    dataset_hf = load_dataset("your/dataset", split="train")
-   dataset = scDataset(dataset_hf, Streaming(), batch_size=32)
+   dataset = scDataset(dataset_hf, Streaming(), batch_size=64)
 
 Performance Optimization
 -------------------------
@@ -143,7 +153,7 @@ For large datasets, you can optimize performance using these parameters:
 
    dataset = scDataset(
        data,
-       BlockShuffling(block_size=4),  # Larger blocks for better I/O
+       BlockShuffling(block_size=4),
        batch_size=64,
        fetch_factor=16,  # Fetch 16 batches at once
    )
@@ -172,7 +182,7 @@ You can apply transforms at different stages:
    dataset = scDataset(
        data,
        Streaming(),
-       batch_size=32,
+       batch_size=64,
        fetch_transform=preprocess_fetch,
        batch_transform=normalize_batch
    )

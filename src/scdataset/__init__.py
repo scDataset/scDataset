@@ -37,7 +37,7 @@ Basic usage with streaming (sequential) sampling::
     
     # Use with PyTorch DataLoader
     from torch.utils.data import DataLoader
-    loader = DataLoader(dataset, num_workers=4)
+    loader = DataLoader(dataset, batch_size=None, num_workers=4)
     
     for batch in loader:
         print(f"Batch shape: {batch.shape}")
@@ -47,8 +47,18 @@ Block shuffling for better randomization while maintaining some locality::
 
     from scdataset import BlockShuffling
     
-    # Shuffle in blocks of 32 samples
-    strategy = BlockShuffling(block_size=32)
+    # Shuffle in blocks of 8 samples
+    strategy = BlockShuffling(block_size=8)
+    dataset = scDataset(data, strategy, batch_size=64)
+
+Weighted sampling for handling imbalanced data::
+
+    from scdataset import BlockWeightedSampling
+    import numpy as np
+    
+    # Sample with custom weights (e.g., higher weight for rare samples)
+    weights = np.random.rand(len(data))
+    strategy = BlockWeightedSampling(weights=weights, total_size=500, block_size=32)
     dataset = scDataset(data, strategy, batch_size=64)
 
 Class-balanced sampling for imbalanced datasets::
@@ -70,13 +80,12 @@ Key Features
 * **Flexible Sampling**: Multiple sampling strategies for different use cases  
 * **PyTorch Compatible**: Works seamlessly with PyTorch DataLoader and multiprocessing
 * **Customizable**: Support for custom fetch/batch callbacks and transforms
-* **Single-Cell Optimized**: Designed for the specific patterns of genomics data
 
 Performance Tips
 ----------------
 
+* Use ``block_size > 1`` to read data in contiguous chunks
 * Use ``fetch_factor > 1`` to fetch multiple batches at once for better I/O
-* Set ``block_size`` in shuffling strategies based on your data access patterns
 * Use ``num_workers > 0`` in DataLoader for parallel data loading
 """
 # See Also

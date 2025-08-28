@@ -134,7 +134,7 @@ class scDataset(IterableDataset):
         data_collection, 
         strategy: SamplingStrategy,
         batch_size: int, 
-        fetch_factor: int = 1, 
+        fetch_factor: int = 16, 
         drop_last: bool = False,
         fetch_transform: Optional[Callable] = None, 
         batch_transform: Optional[Callable] = None,
@@ -152,7 +152,7 @@ class scDataset(IterableDataset):
             Sampling strategy instance.
         batch_size : int
             Positive integer for batch size.
-        fetch_factor : int, default=1
+        fetch_factor : int, default=16
             Positive integer for fetch size multiplier.
         drop_last : bool, default=False
             Whether to drop incomplete batches.

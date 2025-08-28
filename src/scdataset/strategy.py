@@ -119,28 +119,37 @@ class SamplingStrategy:
     
 class Streaming(SamplingStrategy):
     """
-    Sequential streaming sampling strategy without shuffling.
+    Sequential streaming sampling strategy with optional buffer-level shuffling.
     
-    This strategy provides indices in sequential order without any shuffling,
-    making it suitable for deterministic iteration through data collections.
-    It can optionally work with a subset of indices.
+    This strategy provides indices in sequential order, with optional shuffling
+    at the buffer level (defined by fetch_factor in scDataset). When shuffle=True,
+    batches within each fetch buffer are shuffled, similar to Ray Dataset or 
+    WebDataset behavior, while maintaining overall sequential order across buffers.
     
     Parameters
     ----------
     indices : array-like, optional
         Subset of indices to use for sampling. If None, uses all indices
         from 0 to len(data_collection)-1.
+    shuffle : bool, default=False
+        Whether to shuffle batches within each fetch buffer. When True,
+        enables buffer-level shuffling that maintains sequential order
+        between buffers but randomizes the order of batches within each
+        buffer (defined by fetch_factor * batch_size).
         
     Attributes
     ----------
     _shuffle_before_yield : bool
-        Always False for streaming strategy.
+        Controlled by the shuffle parameter. True if buffer-level shuffling
+        is enabled, False otherwise.
     _indices : numpy.ndarray or None
         Stored subset of indices if provided.
+    shuffle : bool
+        Whether buffer-level shuffling is enabled.
         
     Examples
     --------
-    >>> # Stream through entire dataset
+    >>> # Stream through entire dataset without shuffling
     >>> strategy = Streaming()
     >>> indices = strategy.get_indices(range(100))
     >>> len(indices)
@@ -152,13 +161,29 @@ class Streaming(SamplingStrategy):
     >>> list(indices)
     [10, 20, 30]
     
+    >>> # Stream with buffer-level shuffling (like Ray Dataset/WebDataset)
+    >>> shuffle_strategy = Streaming(shuffle=True)
+    >>> # Batches within each fetch buffer will be shuffled,
+    >>> # but buffers themselves maintain sequential order
+    
     See Also
     --------
     BlockShuffling : For shuffled block-based sampling
     BlockWeightedSampling : For weighted sampling with shuffling
+    
+    Notes
+    -----
+    When shuffle=True, this strategy provides behavior similar to:
+    
+    - Ray Dataset's local shuffling within windows
+    - WebDataset's shuffle buffer functionality
+    
+    The key difference from BlockShuffling is that Streaming maintains
+    the overall sequential order of fetch buffers, only shuffling within
+    each buffer, while BlockShuffling shuffles the order of blocks themselves.
     """
     
-    def __init__(self, indices: Optional[ArrayLike] = None):
+    def __init__(self, indices: Optional[ArrayLike] = None, shuffle: bool = False):
         """
         Initialize streaming strategy.
         
@@ -167,9 +192,14 @@ class Streaming(SamplingStrategy):
         indices : array-like, optional
             Subset of indices to stream through. If None, streams through
             all available indices.
+        shuffle : bool, default=False
+            Whether to enable buffer-level shuffling. When True, batches
+            within each fetch buffer are shuffled while maintaining
+            sequential order between buffers.
         """
         super().__init__()
-        self._shuffle_before_yield = False
+        self.shuffle = shuffle
+        self._shuffle_before_yield = shuffle
         self._indices = indices
 
     def get_len(self, data_collection) -> int:
@@ -204,16 +234,20 @@ class Streaming(SamplingStrategy):
         """
         Get indices for streaming sampling.
         
-        Returns indices in sequential order without any shuffling.
+        Returns indices in sequential order. If shuffle=True was set during
+        initialization, the _shuffle_before_yield attribute will cause
+        buffer-level shuffling during iteration.
         
         Parameters
         ----------
         data_collection : object
             The data collection to sample from. Must support ``len()``.
         seed : int, optional
-            Random seed (ignored for streaming strategy).
+            Random seed. Only used if shuffle=True for buffer-level shuffling
+            during iteration, not for index generation which remains sequential.
         rng : numpy.random.Generator, optional
-            Random number generator (ignored for streaming strategy).
+            Random number generator. Only used if shuffle=True for buffer-level
+            shuffling during iteration.
             
         Returns
         -------
@@ -231,6 +265,12 @@ class Streaming(SamplingStrategy):
         >>> indices = subset_strategy.get_indices(range(10))
         >>> list(indices)
         [2, 4, 6]
+        
+        >>> # With shuffle=True, indices are still sequential
+        >>> shuffle_strategy = Streaming(shuffle=True)
+        >>> indices = shuffle_strategy.get_indices(range(5))
+        >>> list(indices)  # Still sequential - shuffling happens at buffer level
+        [0, 1, 2, 3, 4]
         """
         if self._indices is None:
             return np.arange(len(data_collection))
