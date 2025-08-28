@@ -4,10 +4,9 @@
 .. currentmodule:: scdataset.strategy
 
 .. autoclass:: SamplingStrategy
+   :no-index:
 
    
-   .. automethod:: __init__
-
    
    .. rubric:: Methods
 

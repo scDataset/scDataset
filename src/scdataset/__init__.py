@@ -12,6 +12,7 @@ Main Components
 **Core Classes**
 
 * :class:`~scdataset.scDataset` - Main iterable dataset class with configurable sampling
+* :class:`~scdataset.MultiIndexable` - Container for multi-modal data with synchronized indexing
 * :class:`~scdataset.strategy.SamplingStrategy` - Abstract base for sampling strategies
 
 **Sampling Strategies**
@@ -73,6 +74,24 @@ Class-balanced sampling for imbalanced datasets::
     strategy = ClassBalancedSampling(cell_types, total_size=5000)
     dataset = scDataset(data, strategy, batch_size=64)
 
+Multi-modal data with synchronized indexing::
+
+    from scdataset import MultiIndexable
+    
+    # Group multiple data modalities together
+    multimodal = MultiIndexable(
+        genes=gene_expression_data,    # Shape: (n_cells, n_genes) 
+        proteins=protein_data,         # Shape: (n_cells, n_proteins)
+        metadata=cell_metadata         # Shape: (n_cells, n_features)
+    )
+    
+    # Use with scDataset - all modalities indexed together
+    dataset = scDataset(multimodal, Streaming(), batch_size=64)
+    
+    for batch in dataset:
+        genes = batch['genes']      # Genes for this batch
+        proteins = batch['proteins'] # Corresponding proteins
+
 Key Features
 ------------
 
@@ -101,6 +120,7 @@ from .strategy import (
     BlockWeightedSampling, 
     ClassBalancedSampling
 )
+from .multiindexable import MultiIndexable
 
 __version__ = "0.1.0"
 
@@ -111,4 +131,5 @@ __all__ = [
     "BlockShuffling", 
     "BlockWeightedSampling",
     "ClassBalancedSampling",
+    "MultiIndexable",
 ]

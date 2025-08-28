@@ -1,5 +1,5 @@
 scDataset Documentation
-======================
+=======================
 
 .. image:: https://badge.fury.io/py/scDataset.svg
    :target: https://pypi.org/project/scDataset/

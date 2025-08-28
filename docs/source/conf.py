@@ -50,7 +50,11 @@ autodoc_default_options = {
     'undoc-members': True,
     'show-inheritance': True,
     'member-order': 'bysource',
+    'exclude-members': '__weakref__',
 }
+
+# Suppress specific warnings
+suppress_warnings = ['autosummary.import_cycle']
 
 # Intersphinx mapping
 intersphinx_mapping = {

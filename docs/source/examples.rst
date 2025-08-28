@@ -75,6 +75,58 @@ Class-Balanced Training
 Multi-Modal Data
 ~~~~~~~~~~~~~~~~
 
+For multi-modal single-cell data (e.g., gene expression + protein measurements), 
+you can use the :class:`MultiIndexable` class to keep different data modalities 
+synchronized during indexing:
+
+.. code-block:: python
+
+   import numpy as np
+   from scdataset import scDataset, BlockShuffling, MultiIndexable
+   from torch.utils.data import DataLoader
+   
+   # Simulate multi-modal data
+   n_cells = 1000
+   gene_data = np.random.randn(n_cells, 2000)     # Gene expression
+   protein_data = np.random.randn(n_cells, 100)   # Protein measurements  
+   metadata = np.random.randn(n_cells, 10)        # Cell metadata
+   
+   # Method 1: Using keyword arguments
+   multimodal_data = MultiIndexable(
+       genes=gene_data,
+       proteins=protein_data, 
+       metadata=metadata
+   )
+   
+   # Method 2: Using dictionary as positional argument  
+   data_dict = {
+       'genes': gene_data,
+       'proteins': protein_data,
+       'metadata': metadata
+   }
+   multimodal_data = MultiIndexable(data_dict)
+   
+   # Create dataset - all modalities will be indexed together
+   dataset = scDataset(
+       multimodal_data,
+       BlockShuffling(block_size=8),
+       batch_size=32
+   )
+   
+   # Use with DataLoader
+   loader = DataLoader(dataset, batch_size=None, num_workers=4)
+   
+   for batch in loader:
+       genes = batch['genes']        # Shape: (32, 2000)
+       proteins = batch['proteins']  # Shape: (32, 100)  
+       meta = batch['metadata']      # Shape: (32, 10)
+       
+       print(f"Genes: {genes.shape}, Proteins: {proteins.shape}, Meta: {meta.shape}")
+       # All correspond to the same 32 cells
+       break
+
+Alternative approach with custom fetch function (for AnnData objects):
+
 .. code-block:: python
 
    def fetch_multimodal(adata, indices):
@@ -82,11 +134,10 @@ Multi-Modal Data
        gene_data = adata[indices].X.toarray()
        protein_data = adata[indices].obsm['protein'].toarray()
        
-       return {
-           'genes': gene_data.astype(np.float32),
-           'proteins': protein_data.astype(np.float32),
-           'cell_types': adata[indices].obs['cell_type'].values
-       }
+       return MultiIndexable(
+           genes=gene_data,
+           proteins=protein_data
+       )
    
    dataset = scDataset(
        adata,
@@ -229,25 +280,12 @@ Basic Usage
    
    # Custom batch callback for HuggingFace datasets
    def extract_hf_batch(fetched_data, batch_indices):
-       """Extract a batch from HuggingFace dataset fetched data."""
-       batch = {}
-       for key, values in fetched_data.items():
-           batch[key] = [values[i] for i in batch_indices]
-       return batch
    
    # Create dataset with custom batch callback
    dataset = scDataset(
-       hf_dataset, 
-       Streaming(), 
-       batch_size=64,
-       batch_callback=extract_hf_batch
    )
    
    for batch in DataLoader(dataset, batch_size=None):
-       # batch will be a dictionary with dataset features
-       print("Batch keys:", batch.keys())
-       print("Batch size:", len(batch['text']))
-       break
 
 Custom Processing for HuggingFace Data
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -255,30 +293,103 @@ Custom Processing for HuggingFace Data
 .. code-block:: python
 
    def extract_hf_batch(fetched_data, batch_indices):
-       """Extract a batch from HuggingFace dataset fetched data."""
-       batch = {}
-       for key, values in fetched_data.items():
-           batch[key] = [values[i] for i in batch_indices]
-       return batch
 
    def process_hf_batch(batch_dict):
-       """Process HuggingFace batch into numpy arrays."""
-       # Extract and process specific features
-       features = np.array(batch_dict['expression'])
-       labels = np.array(batch_dict['cell_type_id'])
-       
-       return {
-           'features': features.astype(np.float32),
-           'labels': labels.astype(np.int64)
-       }
    
    dataset = scDataset(
-       hf_dataset,
-       BlockShuffling(block_size=64),
-       batch_size=32,
-       batch_callback=extract_hf_batch,
-       batch_transform=process_hf_batch
    )
+
+Working with MultiIndexable
+----------------------------
+
+The :class:`MultiIndexable` class provides a convenient way to group multiple 
+indexable objects that should be indexed together. This is particularly useful 
+for multi-modal data or features and labels.
+
+Basic MultiIndexable Usage
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: python
+
+   import numpy as np
+   from scdataset import MultiIndexable, scDataset, Streaming
+   from torch.utils.data import DataLoader
+   
+   # Create sample data
+   features = np.random.randn(1000, 50)  # Features
+   labels = np.random.randint(0, 3, 1000)  # Labels
+   
+   # Group them together
+   data = MultiIndexable(features, labels, names=['X', 'y'])
+   
+   # Or using dictionary syntax
+   data = MultiIndexable(X=features, y=labels)
+   
+   # Create dataset
+   dataset = scDataset(data, Streaming(), batch_size=64)
+   loader = DataLoader(dataset, batch_size=None)
+   
+   for batch in loader:
+       X_batch = batch['X']  # or batch[0]
+       y_batch = batch['y']  # or batch[1]
+       print(f"Features: {X_batch.shape}, Labels: {y_batch.shape}")
+       break
+
+Multi-Modal Single-Cell Data
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: python
+
+   # Simulate CITE-seq data (RNA + protein)
+   n_cells = 5000
+   rna_data = np.random.randn(n_cells, 2000)      # Gene expression
+   protein_data = np.random.randn(n_cells, 50)    # Surface proteins
+   cell_types = np.random.choice(['T', 'B', 'NK'], n_cells)  # Labels
+   
+   # Group all modalities
+   cite_seq_data = MultiIndexable(
+       rna=rna_data,
+       proteins=protein_data,
+       cell_types=cell_types
+   )
+   
+   # Use with class-balanced sampling
+   from scdataset import ClassBalancedSampling
+   strategy = ClassBalancedSampling(cell_types, total_size=2000, block_size=16)
+   dataset = scDataset(cite_seq_data, strategy, batch_size=32)
+   
+   for batch in dataset:
+       rna = batch['rna']           # RNA expression for 32 cells
+       proteins = batch['proteins'] # Protein expression for same 32 cells  
+       types = batch['cell_types']  # Cell type labels for same 32 cells
+       # All data is synchronized - same cells across modalities
+       break
+
+Subsetting and Indexing
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. code-block:: python
+
+   # Create MultiIndexable
+   data = MultiIndexable(
+       features=np.random.randn(1000, 100),
+       labels=np.random.randint(0, 5, 1000),
+       metadata=np.random.randn(1000, 10)
+   )
+   
+   # Access individual indexables
+   features = data['features']  # or data[0]
+   labels = data['labels']      # or data[1] 
+   
+   # Subset by sample indices - returns new MultiIndexable
+   subset = data[100:200]       # Samples 100-199 from all modalities
+   train_data = data[train_indices]  # Training subset
+   
+   # Check properties
+   print(f"Original length: {len(data)}")      # 1000 samples
+   print(f"Subset length: {len(subset)}")      # 100 samples  
+   print(f"Number of modalities: {data.count}") # 3 modalities
+   print(f"Modality names: {data.names}")      # ['features', 'labels', 'metadata']
 
 Integration with PyTorch Lightning
 -----------------------------------

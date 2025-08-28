@@ -4,10 +4,9 @@
 .. currentmodule:: scdataset.strategy
 
 .. autoclass:: Streaming
+   :no-index:
 
    
-   .. automethod:: __init__
-
    
    .. rubric:: Methods
 

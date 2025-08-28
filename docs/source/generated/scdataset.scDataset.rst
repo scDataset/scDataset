@@ -4,10 +4,9 @@
 .. currentmodule:: scdataset
 
 .. autoclass:: scDataset
+   :no-index:
 
    
-   .. automethod:: __init__
-
    
    .. rubric:: Methods
 

@@ -1,5 +1,5 @@
 Quick Start Guide
-================
+=================
 
 This guide will help you get started with ``scDataset`` quickly.
 
@@ -191,5 +191,5 @@ Next Steps
 ----------
 
 * See :doc:`examples` for more detailed use cases
-* Check the :doc:`api` for complete API reference
+* Check the :doc:`scdataset` for complete API reference
 * Read about advanced features in the full examples

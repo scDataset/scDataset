@@ -4,10 +4,9 @@
 .. currentmodule:: scdataset.strategy
 
 .. autoclass:: BlockShuffling
+   :no-index:
 
    
-   .. automethod:: __init__
-
    
    .. rubric:: Methods
 

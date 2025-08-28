@@ -11,7 +11,7 @@ BibTeX
    @article{scdataset2025,
      title={scDataset: Scalable Data Loading for Deep Learning on Large-Scale Single-Cell Omics},
      author={D'Ascenzo, Davide and Cultrera di Montesano, Sebastiano},
-     journal={arXiv preprint arXiv:2506.01883},
+     journal={arXiv:2506.01883},
      year={2025}
    }
 

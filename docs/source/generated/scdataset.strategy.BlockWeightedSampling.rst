@@ -4,10 +4,9 @@
 .. currentmodule:: scdataset.strategy
 
 .. autoclass:: BlockWeightedSampling
+   :no-index:
 
    
-   .. automethod:: __init__
-
    
    .. rubric:: Methods
 
