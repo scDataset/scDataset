@@ -40,6 +40,10 @@ jobs:
         fi
         sphinx-build -b html docs/source docs/build/html
         touch docs/build/html/.nojekyll
+        # Add Google Search Console verification file if it exists
+        if [ -f docs/source/google-verification.html ]; then
+          cp docs/source/google-verification.html docs/build/html/
+        fi
 
     - name: Determine version and deploy location
       id: version
