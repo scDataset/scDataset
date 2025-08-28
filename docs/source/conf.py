@@ -84,6 +84,12 @@ html_theme_options = {
         'binderhub_url': '',
         'colab_url': 'https://colab.research.google.com',
     },
+    # Version switcher
+    'switcher': {
+        'json_url': 'https://scdataset.github.io/versions.json',
+        'version_match': version,
+    },
+    'navbar_end': ['version-switcher', 'navbar-icon-links'],
 }
 
 html_title = 'scDataset Documentation'
