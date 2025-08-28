@@ -1,4 +1,4 @@
-name: Build and Deploy Versioned Docs
+name: Build and Deploy Sphinx Docs
 
 on:
   push:
@@ -19,8 +19,6 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      with:
-        fetch-depth: 0  # Fetch all history for proper version detection
 
     - name: Set up Python
       uses: actions/setup-python@v5
@@ -30,7 +28,6 @@ jobs:
     - name: Install dependencies
       run: |
         pip install sphinx sphinx-book-theme sphinx-autodoc-typehints
-        pip install mike  # For version management
         pip install -e .
 
     - name: Build docs
@@ -38,23 +35,75 @@ jobs:
         sphinx-build -b html docs/source docs/build/html
         touch docs/build/html/.nojekyll
 
-    - name: Deploy with mike
-      if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
+    - name: Determine version and deploy location
+      id: version
       run: |
-        # Configure git
-        git config --global user.name 'github-actions[bot]'
-        git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-        
-        # Set up remote for external repository
-        git remote add docs https://x-access-token:${{ secrets.DOCS_DEPLOY_TOKEN }}@github.com/scdataset/scdataset.github.io.git
-        
         if [[ $GITHUB_REF == refs/heads/main ]]; then
-          # Deploy latest version for main branch
-          mike deploy --remote docs --branch main --push --update-aliases latest development
-          mike set-default --remote docs --branch main --push latest
+          echo "destination=latest" >> $GITHUB_OUTPUT
         elif [[ $GITHUB_REF == refs/tags/v* ]]; then
-          # Deploy stable version for tags
           VERSION=${GITHUB_REF#refs/tags/v}
-          mike deploy --remote docs --branch main --push --update-aliases $VERSION stable
-          mike set-default --remote docs --branch main --push stable
+          echo "destination=$VERSION" >> $GITHUB_OUTPUT
+          echo "is_release=true" >> $GITHUB_OUTPUT
         fi
+
+    - name: Deploy to GitHub Pages
+      if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        personal_token: ${{ secrets.DOCS_DEPLOY_TOKEN }}
+        external_repository: scdataset/scdataset.github.io
+        publish_branch: main
+        publish_dir: docs/build/html
+        destination_dir: ${{ steps.version.outputs.destination }}
+        user_name: 'github-actions[bot]'
+        user_email: 'github-actions[bot]@users.noreply.github.com'
+        keep_files: true
+
+    - name: Update stable symlink and create version structure
+      if: steps.version.outputs.is_release == 'true'
+      run: |
+        # Clone the docs repository to update stable symlink
+        git clone https://x-access-token:${{ secrets.DOCS_DEPLOY_TOKEN }}@github.com/scdataset/scdataset.github.io.git temp-docs
+        cd temp-docs
+        
+        # Create/update stable symlink to point to this version
+        VERSION=${GITHUB_REF#refs/tags/v}
+        rm -rf stable
+        ln -sf $VERSION stable
+        
+        # Create versions.json for version switcher
+        cat > versions.json << 'EOF'
+        [
+          {
+            "version": "stable",
+            "title": "stable"
+          },
+          {
+            "version": "latest", 
+            "title": "latest"
+          }
+        ]
+        EOF
+        
+        # Create root index.html that redirects to stable
+        cat > index.html << 'EOF'
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <title>Redirecting to stable documentation</title>
+            <meta http-equiv="refresh" content="0; url=./stable/">
+            <link rel="canonical" href="./stable/">
+        </head>
+        <body>
+            <p>If you are not redirected automatically, follow this <a href="./stable/">link to stable documentation</a>.</p>
+        </body>
+        </html>
+        EOF
+        
+        # Commit the changes
+        git config user.name 'github-actions[bot]'
+        git config user.email 'github-actions[bot]@users.noreply.github.com'
+        git add .
+        git commit -m "Update stable symlink to $VERSION" || true
+        git push

@@ -87,11 +87,11 @@ html_theme_options = {
     # Version switcher
     'switcher': {
         'json_url': 'https://scdataset.github.io/versions.json',
-        'version_match': version,
+        'version_match': 'latest',  # Default to latest, will be updated by CI
     },
     'navbar_end': ['version-switcher', 'navbar-icon-links'],
 }
 
 html_title = 'scDataset Documentation'
 html_logo = 'https://github.com/scDataset/scDataset/raw/main/figures/scdataset.png'
-html_favicon = None
+html_favicon = 'https://github.com/scDataset/scDataset/raw/main/figures/scdataset_favicon.png'
