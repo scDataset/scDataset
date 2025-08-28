@@ -29,6 +29,7 @@ extensions = [
     'sphinx.ext.viewcode',
     'sphinx.ext.intersphinx',
     'sphinx.ext.githubpages',
+    'sphinx_sitemap',
 ]
 
 # Generate autosummary pages
@@ -95,3 +96,7 @@ html_theme_options = {
 html_title = 'scDataset Documentation'
 html_logo = 'https://github.com/scDataset/scDataset/raw/main/figures/scdataset.png'
 html_favicon = 'https://github.com/scDataset/scDataset/raw/main/figures/scdataset_favicon.png'
+
+# Sitemap configuration
+html_baseurl = 'https://scdataset.github.io/'
+sitemap_url_scheme = "{link}"

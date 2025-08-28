@@ -27,7 +27,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        pip install sphinx sphinx-book-theme sphinx-autodoc-typehints
+        pip install sphinx sphinx-book-theme sphinx-autodoc-typehints sphinx-sitemap
         pip install -e .
 
     - name: Build docs
@@ -109,6 +109,19 @@ jobs:
             <p>If you are not redirected automatically, follow this <a href="./stable/">link to stable documentation</a>.</p>
         </body>
         </html>
+        EOF
+        
+        # Create master sitemap.xml that includes all versions
+        cat > sitemap.xml << 'EOF'
+        <?xml version="1.0" encoding="UTF-8"?>
+        <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+          <sitemap>
+            <loc>https://scdataset.github.io/stable/sitemap.xml</loc>
+          </sitemap>
+          <sitemap>
+            <loc>https://scdataset.github.io/latest/sitemap.xml</loc>
+          </sitemap>
+        </sitemapindex>
         EOF
         
         # Commit the changes
