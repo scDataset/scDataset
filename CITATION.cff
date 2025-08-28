@@ -47,7 +47,7 @@ keywords:
   - anndata
 license: MIT
 version: 0.2.0
-date-released: '2025-01-01'
+date-released: '2025-06-02'
 preferred-citation:
   type: article
   title: 'scDataset: Scalable Data Loading for Deep Learning on Large-Scale Single-Cell Omics'

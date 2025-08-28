@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "scDataset"
-version = "0.1.1"
+version = "0.2.0"
 description = "Scalable Data Loading for Deep Learning on Large-Scale Single-Cell Omics"
 authors = [
     { name = "Davide D'Ascenzo", email = "davide.dascenzo.work@gmail.com" }

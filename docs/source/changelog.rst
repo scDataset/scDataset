@@ -1,65 +1,48 @@
 Changelog
 =========
 
-This document tracks all notable changes to ``scDataset``.
-
-The format is based on `Keep a Changelog <https://keepachangelog.com/en/1.0.0/>`_,
-and this project adheres to `Semantic Versioning <https://semver.org/spec/v2.0.0.html>`_.
-
-[Unreleased]
-------------
-
-[0.2.0] - 2025-08-13
+[0.2.0] - 2025-08-28
 ---------------------
 
-Added
-~~~~~
+**Breaking Changes**
+~~~~~~~~~~~~~~~~~~~~
 
-* Core ``scDataset`` class with flexible sampling strategies
-* Sampling strategies:
+* **Completely redesigned API**: scDataset now uses a strategy-based sampling approach instead of modes
+* **Constructor changes**: ``scDataset(data_collection, strategy, batch_size, ...)`` replaces old ``scDataset(data_collection, batch_size, ...)``
+* **Removed methods**: ``subset()``, ``set_mode()``, ``block_size``, ``fetch_factor`` parameters moved to strategies
+* **New required parameter**: ``strategy`` - must provide a ``SamplingStrategy`` instance
+
+**Added**
+~~~~~~~~~
+
+* **Strategy-based sampling system**:
   
-  * ``Streaming`` - Sequential sampling without shuffling
-  * ``BlockShuffling`` - Block-based shuffling for locality
-  * ``BlockWeightedSampling`` - Weighted sampling with blocks
-  * ``ClassBalancedSampling`` - Automatic class balancing
+  * ``SamplingStrategy`` - Abstract base class for all sampling strategies
+  * ``Streaming`` - Sequential sampling with optional buffer-level shuffling
+  * ``BlockShuffling`` - Block-based shuffling for data locality while maintaining randomization
+  * ``BlockWeightedSampling`` - Weighted sampling with configurable block sizes and replacement options
+  * ``ClassBalancedSampling`` - Automatic class balancing for imbalanced datasets
 
-* Support for multiple data formats:
+* **``MultiIndexable`` class** - Container for multi-modal data with synchronized indexing:
   
-  * NumPy arrays
-  * AnnData objects
-  * HuggingFace Datasets
-  * PyTorch Datasets
-  * Any object with ``__getitem__`` and ``__len__``
+  * Supports multiple indexable objects (arrays, lists, etc.) that are indexed together
+  * Named and positional access to contained indexables  
+  * Useful for gene expression + protein data, features + labels, etc.
 
-* Performance optimizations:
-  
-  * Block-based data fetching
-  * Configurable fetch factors
-  * Multiprocessing support
+**Migration Guide**
+~~~~~~~~~~~~~~~~~~~
 
-* Customization features:
-  
-  * Custom fetch callbacks
-  * Custom batch callbacks
-  * Fetch and batch transforms
+**Old v0.1.x syntax**::
 
-* Comprehensive documentation and examples
-* Test suite with >90% coverage
-* GitHub Actions CI/CD pipeline
+    # v0.1.x - No longer supported
+    dataset = scDataset(data, batch_size=64, block_size=8, fetch_factor=4)
+    dataset.subset(train_indices)
+    dataset.set_mode('train')
 
-Technical Details
-~~~~~~~~~~~~~~~~~
+**New v0.2.0 syntax**::
 
-* Minimum Python version: 3.8
-* Core dependencies: ``torch >= 1.2.0``, ``numpy >= 1.17.0``
-* Compatible with PyTorch DataLoader
-* Supports both eager and lazy data loading patterns
-
-Known Issues
-~~~~~~~~~~~~
-* Performance may vary depending on storage backend (SSD vs HDD)
-
-.. note::
-   This changelog will be updated with each release.
-   See the `GitHub releases page <https://github.com/scDataset/scDataset/releases>`_
-   for the most up-to-date information.
+    # v0.2.0 - Strategy-based approach
+    from scdataset import scDataset, BlockShuffling
+    
+    strategy = BlockShuffling(block_size=8, indices=train_indices)
+    dataset = scDataset(data, strategy, batch_size=64, fetch_factor=4)
