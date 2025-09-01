@@ -9,9 +9,9 @@ Changelog
 
 * **Completely redesigned API**: scDataset now uses a strategy-based sampling approach instead of modes
 * **Constructor changes**: ``scDataset(data_collection, strategy, batch_size, ...)`` replaces old ``scDataset(data_collection, batch_size, ...)``
-* **Removed methods**: ``subset()``, ``set_mode()``
-* ``block_size``, ``fetch_factor`` parameters moved to strategies
 * **New required parameter**: ``strategy`` - must provide a ``SamplingStrategy`` instance
+* ``block_size`` parameter moved to strategies
+* **Removed methods**: ``subset()``, ``set_mode()``
 
 **Added**
 ~~~~~~~~~

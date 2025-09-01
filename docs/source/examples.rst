@@ -417,7 +417,7 @@ Integration with PyTorch Lightning
            # Create datasets
            self.train_dataset = scDataset(
                self.data,
-               BlockShuffling(block_size=8),
+               BlockShuffling(block_size=8, indices=train_idx),
                batch_size=self.batch_size
            )
            
@@ -430,103 +430,23 @@ Integration with PyTorch Lightning
        def train_dataloader(self):
            return DataLoader(
                self.train_dataset,
+               batch_size=None,
                num_workers=self.num_workers,
-               prefetch_factor=2
+               prefetch_factor=self.train_dataset.fetch_factor + 1
            )
        
        def val_dataloader(self):
            return DataLoader(
                self.val_dataset,
+               batch_size=None,
                num_workers=self.num_workers,
-               prefetch_factor=2
+               prefetch_factor=self.val_dataset.fetch_factor + 1
            )
-
-Advanced Sampling Strategies
------------------------------
-
-Custom Weighted Sampling
-~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. code-block:: python
-
-   # Create weights based on cell type frequency (inverse frequency weighting)
-   cell_types = adata.obs['cell_type']
-   type_counts = cell_types.value_counts()
-   weights = 1.0 / type_counts[cell_types].values
-   weights = weights / weights.sum()  # Normalize
-   
-   strategy = BlockWeightedSampling(
-       weights=weights,
-       total_size=5000,
-       block_size=8,
-       replace=True
-   )
-   
-   dataset = scDataset(adata, strategy, batch_size=32)
-
-Temporal Sampling for Time-Series Data
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-.. code-block:: python
-
-   # Custom strategy for time-series single-cell data
-   def create_temporal_indices(timepoints, window_size=5):
-       indices = []
-       for i in range(len(timepoints) - window_size + 1):
-           indices.extend(range(i, i + window_size))
-       return np.array(indices)
-   
-   temporal_indices = create_temporal_indices(adata.obs['timepoint'])
-   
-   dataset = scDataset(
-       adata,
-       Streaming(indices=temporal_indices),
-       batch_size=32
-   )
-
-Performance Benchmarking
-------------------------
-
-.. code-block:: python
-
-   import time
-   from contextlib import contextmanager
-   
-   @contextmanager
-   def timer():
-       start = time.time()
-       yield
-       end = time.time()
-       print(f"Time taken: {end - start:.2f} seconds")
-   
-   # Compare different configurations
-   configs = [
-       {'block_size': 32, 'fetch_factor': 1},
-       {'block_size': 64, 'fetch_factor': 2},
-       {'block_size': 128, 'fetch_factor': 4},
-   ]
-   
-   for config in configs:
-       dataset = scDataset(
-           large_data,
-           BlockShuffling(block_size=config['block_size']),
-           batch_size=64,
-           fetch_factor=config['fetch_factor']
-       )
-       
-       loader = DataLoader(dataset, num_workers=4)
-       
-       with timer():
-           for i, batch in enumerate(loader):
-               if i >= 100:  # Test first 100 batches
-                   break
-       
-       print(f"Config {config}: done")
 
 Tips and Best Practices
 ------------------------
 
-1. **Choose appropriate block sizes**: Larger blocks (128-512) work better for sequential data access, smaller blocks (16-64) for more randomness.
+1. **Choose appropriate block sizes**: Larger blocks (128-512) work better for sequential data access, smaller blocks (4-16) for more randomness.
 
 2. **Use fetch_factor > 1** for better I/O efficiency, especially with slow storage.
 
@@ -534,6 +454,4 @@ Tips and Best Practices
 
 4. **For validation**, use ``Streaming`` strategy for deterministic results.
 
-5. **For large datasets**, consider using fewer workers but higher fetch_factor to reduce memory overhead.
-
-6. **Profile your pipeline** to find the optimal configuration for your specific data and hardware setup.
+5. **Profile your pipeline** to find the optimal configuration for your specific data and hardware setup.

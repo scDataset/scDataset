@@ -60,8 +60,8 @@ Basic usage:
    # Create dataset with streaming strategy
    dataset = scDataset(data, Streaming(), batch_size=64)
    
-   # Use with PyTorch DataLoader
-   loader = DataLoader(dataset, num_workers=4)
+   # Use with PyTorch DataLoader (note: batch_size=None)
+   loader = DataLoader(dataset, batch_size=None, num_workers=4)
    
    for batch in loader:
        print(f"Batch shape: {batch.shape}")
@@ -81,6 +81,5 @@ Basic usage:
    :caption: Additional Resources:
    
    citation
-   contributing
    changelog
 

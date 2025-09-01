@@ -56,7 +56,7 @@ Streaming (Sequential)
    strategy = Streaming()
    dataset = scDataset(data, strategy, batch_size=64)
    
-   # Sequential access with buffer-level shuffling (like Ray Dataset/WebDataset)
+   # Sequential access with buffer-level shuffling (similar to Ray Dataset/WebDataset)
    strategy = Streaming(shuffle=True)
    dataset = scDataset(data, strategy, batch_size=64)
    # This shuffles batches within each fetch buffer while maintaining
@@ -160,6 +160,7 @@ For large datasets, you can optimize performance using these parameters:
    
    loader = DataLoader(
        dataset,
+       batch_size=None,
        num_workers=12,        # Multiple workers for parallel loading
        prefetch_factor=17,    # fetch_factor + 1
    )
