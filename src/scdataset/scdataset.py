@@ -107,7 +107,7 @@ class scDataset(IterableDataset):
     
     >>> # Iterate through batches
     >>> for batch in dataset:
-    ...     print(batch.shape)  # (32, 50) for most batches
+    ...     print(batch.shape)  # (32, 50)
     ...     break
 
     See Also
