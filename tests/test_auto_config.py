@@ -109,7 +109,7 @@ class TestEstimateSampleSize:
 
     def test_anndata_like_with_sparse_x(self):
         """Test estimating sample size for AnnData-like object with sparse X."""
-        from scipy import sparse
+        sparse = pytest.importorskip("scipy.sparse")
         
         class SparseSample:
             def __init__(self):
