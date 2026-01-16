@@ -26,6 +26,8 @@ classifiers = [
 dev = [
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
+    "pre-commit>=3.0.0",
+    "ruff>=0.8.0",
 ]
 docs = [
     "sphinx>=5.0.0",
@@ -65,3 +67,43 @@ exclude_lines = [
     "raise NotImplementedError",
     "if __name__ == .__main__.:",
 ]
+
+# Ruff configuration (linting + formatting)
+[tool.ruff]
+line-length = 88
+target-version = "py38"
+exclude = [
+    ".git",
+    ".venv",
+    "__pycache__",
+    "docs/build",
+    "build",
+    "dist",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # Pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+]
+ignore = [
+    "E501",  # line too long (handled by formatter)
+    "B008",  # do not perform function calls in argument defaults
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["scdataset"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+# Bandit security configuration
+[tool.bandit]
+exclude_dirs = ["tests", "docs"]
+skips = ["B101"]  # skip assert warnings (used in tests)

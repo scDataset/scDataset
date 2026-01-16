@@ -11,10 +11,11 @@ strategies and customizable data transformation pipelines.
    scDataset
 """
 
-from typing import Optional, Callable
+from typing import Callable, Optional
 
 import numpy as np
 from torch.utils.data import IterableDataset, get_worker_info
+
 from .strategy import SamplingStrategy
 
 
@@ -156,17 +157,17 @@ class scDataset(IterableDataset):
     Combined with PyTorch DataLoader's ``num_workers``, this provides two levels
     of parallelism: across DDP ranks and across DataLoader workers within each rank.
     """
-    
+
     def __init__(
-        self, 
-        data_collection, 
+        self,
+        data_collection,
         strategy: SamplingStrategy,
-        batch_size: int, 
-        fetch_factor: int = 16, 
+        batch_size: int,
+        fetch_factor: int = 16,
         drop_last: bool = False,
-        fetch_transform: Optional[Callable] = None, 
+        fetch_transform: Optional[Callable] = None,
         batch_transform: Optional[Callable] = None,
-        fetch_callback: Optional[Callable] = None, 
+        fetch_callback: Optional[Callable] = None,
         batch_callback: Optional[Callable] = None,
         rank: Optional[int] = None,
         world_size: Optional[int] = None,
@@ -213,7 +214,7 @@ class scDataset(IterableDataset):
             raise TypeError("data_collection must support indexing and len()")
         if not isinstance(strategy, SamplingStrategy):
             raise TypeError("strategy must be an instance of SamplingStrategy")
-        
+
         self.collection = data_collection
         self.strategy = strategy
         self.batch_size = batch_size
@@ -221,21 +222,21 @@ class scDataset(IterableDataset):
         self.drop_last = drop_last
         self.fetch_size = self.batch_size * self.fetch_factor
         self.sort_before_fetch = True  # Always sort before fetch as per new design
-        
+
         # Store callback functions
         self.fetch_transform = fetch_transform
         self.batch_transform = batch_transform
         self.fetch_callback = fetch_callback
         self.batch_callback = batch_callback
-        
+
         # DDP support with auto-detection
         self.rank, self.world_size = self._detect_ddp(rank, world_size)
-        
+
         # Epoch counter for reproducible shuffling - auto-increments each iteration
         self._epoch = 0
         # Base seed for deterministic shuffling sequences
         self._base_seed = seed
-    
+
     def _detect_ddp(self, rank: Optional[int], world_size: Optional[int]) -> tuple:
         """
         Detect or validate DDP settings.
@@ -266,12 +267,12 @@ class scDataset(IterableDataset):
         except ImportError:
             detected_rank = 0
             detected_world_size = 1
-        
+
         final_rank = rank if rank is not None else detected_rank
         final_world_size = world_size if world_size is not None else detected_world_size
-        
+
         return final_rank, final_world_size
-        
+
     def __len__(self) -> int:
         """
         Return the number of batches in the dataset for this rank.
@@ -313,30 +314,30 @@ class scDataset(IterableDataset):
         """
         # Get the total number of samples from the sampling strategy
         n = self.strategy.get_len(self.collection)
-        
+
         # Calculate total fetches and per-rank fetches
         fetch_size = self.fetch_size
         num_fetches = (n + fetch_size - 1) // fetch_size
-        
+
         # Round-robin distribution: this rank gets fetches at positions
         # rank, rank + world_size, rank + 2*world_size, ...
         per_rank_fetches = num_fetches // self.world_size
         if self.rank < (num_fetches % self.world_size):
             per_rank_fetches += 1
-        
+
         # Check if this rank gets any fetches
         if per_rank_fetches == 0:
             return 0
-        
+
         # For simplicity, estimate based on per-rank sample count
         per_rank_samples = (n + self.world_size - 1) // self.world_size
-        
+
         if self.drop_last:
             return per_rank_samples // self.batch_size
         else:
             return (per_rank_samples + self.batch_size - 1) // self.batch_size
 
-        
+
     def __iter__(self):
         """
         Yield batches of data according to the sampling strategy.
@@ -393,15 +394,15 @@ class scDataset(IterableDataset):
         each epoch without requiring manual ``set_epoch()`` calls.
         """
         worker_info = get_worker_info()
-        
+
         # Generate seed for sampling strategy - combine base_seed with epoch
         # All ranks use the same seed for consistent global ordering
         # epoch * 1000 provides sufficient separation between epochs
         current_seed = self._base_seed + self._epoch * 1000
-        
+
         # Auto-increment epoch for next iteration (different shuffling each epoch)
         self._epoch += 1
-        
+
         if worker_info is None:
             rng = np.random.default_rng(current_seed)
         else:
@@ -410,22 +411,22 @@ class scDataset(IterableDataset):
 
         # Get indices from sampling strategy - same ordering across all ranks
         indices = self.strategy.get_indices(self.collection, seed=current_seed)
-        
+
         # Calculate fetch ranges
         n = len(indices)
         fetch_size = self.fetch_size
         num_fetches = (n + fetch_size - 1) // fetch_size
-        
+
         # DDP: Distribute fetches among ranks in round-robin fashion
         # This rank gets fetches: rank, rank + world_size, rank + 2*world_size, ...
         rank_fetch_ids = list(range(self.rank, num_fetches, self.world_size))
-        
+
         # Build fetch ranges for this rank only
         fetch_ranges = [
-            (i * fetch_size, min((i + 1) * fetch_size, n)) 
+            (i * fetch_size, min((i + 1) * fetch_size, n))
             for i in rank_fetch_ids
         ]
-        
+
         # Handle DataLoader multiprocessing by distributing fetch ranges among workers
         if worker_info is not None and len(fetch_ranges) > 0:
             num_rank_fetches = len(fetch_ranges)
@@ -438,7 +439,7 @@ class scDataset(IterableDataset):
                 start = worker_info.id * per_worker + remainder
                 end = start + per_worker
             fetch_ranges = fetch_ranges[start:end]
-        
+
         # Process each fetch range
         for fetch_start, fetch_end in fetch_ranges:
             fetch_indices = indices[fetch_start:fetch_end]
@@ -459,28 +460,28 @@ class scDataset(IterableDataset):
                 shuffle_indices = rng.permutation(len(fetch_indices))
             else:
                 shuffle_indices = np.arange(len(fetch_indices))
-            
+
             # Yield batches
             batch_start = 0
             while batch_start < len(fetch_indices):
                 batch_end = min(batch_start + self.batch_size, len(fetch_indices))
-                
+
                 # Handle drop_last
                 if self.drop_last and (batch_end - batch_start) < self.batch_size:
                     break
-                
+
                 # Get batch indices
                 batch_indices = shuffle_indices[batch_start:batch_end]
-                
+
                 # Use custom batch callback if provided, otherwise use default indexing
                 if self.batch_callback is not None:
                     batch_data = self.batch_callback(data, batch_indices)
                 else:
                     batch_data = data[batch_indices]
-                
+
                 # Call batch transform if provided
                 if self.batch_transform is not None:
                     batch_data = self.batch_transform(batch_data)
-                    
+
                 yield batch_data
                 batch_start = batch_end

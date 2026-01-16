@@ -12,10 +12,10 @@ be used as ``fetch_transform`` or ``batch_transform`` arguments in scDataset.
    fetch_transform_hf
 """
 
+from typing import List, Optional
+
 import numpy as np
 import torch
-from typing import Optional, List
-
 
 __all__ = ["fetch_transform_adata", "fetch_transform_hf"]
 
@@ -91,26 +91,26 @@ def fetch_transform_adata(batch, columns: Optional[List[str]] = None):
     """
     # Import here to avoid circular imports
     from .multiindexable import MultiIndexable
-    
+
     # Import scipy.sparse locally to avoid hard dependency
     try:
         import scipy.sparse as sp
     except ImportError:
         sp = None
-    
+
     # Materialize the AnnData batch in memory
     batch = batch.to_memory()
-    
+
     X = batch.X
     # Densify if X is a sparse matrix
     if sp is not None and sp.issparse(X):
         X = X.toarray()
-        
+
     obs = batch.obs
-        
+
     # Create dict with X and all obs columns as numpy arrays
     data_dict = {'X': X}
-    
+
     if columns is not None:
         for col in columns:
             data_dict[col] = obs[col].values
@@ -181,27 +181,27 @@ def fetch_transform_hf(batch, num_genes: int = 62713):
         raise ValueError("Batch must be a dictionary or a list of dictionaries.")
 
     batch_size = len(batch_genes)
-    
+
     # Generate batch indices using numpy
     lengths = [len(arr) for arr in batch_genes]
     batch_indices_np = np.concatenate(
         [np.full(length, i, dtype=np.int64) for i, length in enumerate(lengths)]
     )
-    
+
     # Concatenate all genes and expressions in numpy first
     gene_indices_np = np.concatenate(batch_genes)
     values_np = np.concatenate(batch_expr)
-    
+
     # Single conversion to tensors
     batch_indices = torch.from_numpy(batch_indices_np)
     gene_indices = torch.from_numpy(gene_indices_np)
     values = torch.from_numpy(values_np).float()
-    
+
     # Create combined indices tensor
     indices = torch.stack([batch_indices, gene_indices], dim=0)
-    
+
     # Create dense tensor in one assignment
     dense_tensor = torch.zeros(batch_size, num_genes, dtype=values.dtype)
     dense_tensor[indices[0], indices[1]] = values
-    
+
     return dense_tensor

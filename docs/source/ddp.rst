@@ -1,12 +1,15 @@
-Distributed Training
-====================
+Distributed & Parallel Training
+================================
 
-``scDataset`` provides native support for distributed training with PyTorch's 
-DistributedDataParallel (DDP). This enables efficient scaling across multiple 
-GPUs and nodes.
+``scDataset`` provides native support for distributed and parallel training with 
+PyTorch. This includes:
 
-How It Works
-------------
+- **DistributedDataParallel (DDP)**: Multi-GPU, multi-node training
+- **DataParallel (DP)**: Simple multi-GPU on single node
+- **DataLoader multiprocessing**: ``num_workers`` for parallel data loading
+
+How DDP Works
+-------------
 
 When running in a distributed environment, ``scDataset`` automatically partitions 
 data across workers using round-robin assignment. Each worker (rank) processes 
@@ -383,10 +386,161 @@ Best Practices
 8. **Weighted sampling works out of the box**: Use ``BlockWeightedSampling`` or 
    ``ClassBalancedSampling`` in DDP without any special configuration
 
+DataLoader Multiprocessing (num_workers)
+----------------------------------------
+
+``scDataset`` works seamlessly with PyTorch DataLoader's ``num_workers`` parameter
+for multiprocessing-based data loading. This enables parallel data fetching and
+preprocessing while the GPU trains on the current batch.
+
+**Basic Usage**
+
+.. code-block:: python
+
+    from torch.utils.data import DataLoader
+    from scdataset import scDataset, BlockShuffling
+    
+    dataset = scDataset(
+        data,
+        BlockShuffling(block_size=64),
+        batch_size=128
+    )
+    
+    # Use num_workers for parallel data loading
+    loader = DataLoader(
+        dataset,
+        batch_size=None,  # IMPORTANT: batching handled by scDataset
+        num_workers=4,     # Use 4 worker processes
+        prefetch_factor=2  # Prefetch 2 batches per worker
+    )
+    
+    for batch in loader:
+        # Training code here
+        pass
+
+**How It Works**
+
+When ``num_workers > 0``, PyTorch spawns worker processes that load data in parallel:
+
+1. Each worker independently iterates over ``scDataset``
+2. Workers use PyTorch's automatic data splitting via ``get_worker_info()``
+3. ``scDataset`` detects worker count and ID, partitioning data among workers
+4. Batches are prefetched and queued for the main process
+
+**Combining with DDP**
+
+Both DDP partitioning and DataLoader multiprocessing work together:
+
+.. code-block:: python
+
+    # In a DDP training script launched with torchrun
+    dist.init_process_group(backend="nccl")
+    
+    dataset = scDataset(
+        adata,
+        BlockShuffling(block_size=64),
+        batch_size=128
+        # rank and world_size auto-detected from torch.distributed
+    )
+    
+    # Each DDP rank uses multiple workers
+    loader = DataLoader(
+        dataset,
+        batch_size=None,
+        num_workers=4  # 4 workers PER GPU
+    )
+    
+    # With 4 GPUs and 4 workers each, you have 16 worker processes total
+
+**Choosing num_workers**
+
+- Start with ``num_workers=2-4`` and increase if GPU utilization is low
+- More workers = more memory usage (each loads data separately)
+- For backed HDF5 files, each worker opens its own file handle
+- Monitor CPU and memory usage to find the optimal value
+
+**Important Notes**
+
+- Always use ``batch_size=None`` in DataLoader (batching is handled by scDataset)
+- For backed AnnData, each worker opens its own file handle
+- The ``seed`` parameter ensures reproducibility across workers
+
+DataParallel (DP) Support
+-------------------------
+
+For simpler single-node multi-GPU setups, you can use PyTorch's ``DataParallel``
+instead of ``DistributedDataParallel``. This is easier to set up but less efficient
+than DDP for large-scale training.
+
+.. code-block:: python
+
+    import torch
+    import torch.nn as nn
+    from torch.utils.data import DataLoader
+    from scdataset import scDataset, BlockShuffling
+    
+    # DataParallel doesn't need distributed setup
+    # scDataset works normally without rank/world_size
+    dataset = scDataset(
+        data,
+        BlockShuffling(block_size=64),
+        batch_size=128
+    )
+    
+    loader = DataLoader(dataset, batch_size=None, num_workers=4)
+    
+    # Wrap model with DataParallel
+    model = nn.Sequential(
+        nn.Linear(2000, 256),
+        nn.ReLU(),
+        nn.Linear(256, 128)
+    )
+    
+    if torch.cuda.device_count() > 1:
+        print(f"Using {torch.cuda.device_count()} GPUs with DataParallel")
+        model = nn.DataParallel(model)
+    
+    model = model.cuda()
+    
+    for batch in loader:
+        batch = batch.cuda()  # DataParallel handles GPU distribution
+        output = model(batch)
+        # Training code here
+
+**When to Use DataParallel vs DDP**
+
+.. list-table::
+   :header-rows: 1
+   :widths: 20 40 40
+   
+   * - 
+     - DataParallel (DP)
+     - DistributedDataParallel (DDP)
+   * - Setup
+     - Simple, no ``torchrun`` needed
+     - Requires distributed initialization
+   * - Efficiency
+     - Slower due to GIL and data copying
+     - Faster, recommended for production
+   * - Multi-node
+     - No
+     - Yes
+   * - Data handling
+     - Single DataLoader, GPU scatter
+     - Per-GPU DataLoader, no scatter
+   * - scDataset usage
+     - Normal (no rank/world_size)
+     - Auto-detected rank/world_size
+
+**Recommendation**: Use DDP for serious training workloads. DataParallel is 
+acceptable for quick experiments or when simplicity is more important than
+maximum throughput.
+
 Further Reading
 ---------------
 
 - `PyTorch DDP Tutorial <https://pytorch.org/tutorials/intermediate/ddp_tutorial.html>`_
 - `PyTorch DistributedSampler Documentation <https://pytorch.org/docs/stable/data.html#torch.utils.data.distributed.DistributedSampler>`_
+- `PyTorch DataLoader num_workers <https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader>`_
 - `PyTorch Issue #77154 <https://github.com/pytorch/pytorch/issues/77154>`_ - Feature request for DistributedWeightedRandomSampler
 - `PyTorch PR #150182 <https://github.com/pytorch/pytorch/pull/150182>`_ - Proposed DistributedWeightedRandomSampler (not yet merged)

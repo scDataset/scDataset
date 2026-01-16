@@ -12,7 +12,8 @@ features and labels that need to stay synchronized.
    MultiIndexable
 """
 
-from typing import Union, List, Dict, Any, Optional, Sequence
+from typing import Any, Dict, List, Optional, Sequence, Union
+
 import numpy as np
 
 
@@ -136,10 +137,10 @@ class MultiIndexable:
     --------
     scdataset.scDataset : Main dataset class that can use MultiIndexable objects
     """
-    
+
     def __init__(
-        self, 
-        *indexables, 
+        self,
+        *indexables,
         names: Optional[List[str]] = None,
         unstructured: Optional[Dict[str, Any]] = None,
         **named_indexables
@@ -159,7 +160,7 @@ class MultiIndexable:
         # Handle different initialization patterns
         if indexables and named_indexables:
             raise TypeError("Cannot provide both positional and named indexables")
-        
+
         # Validate and store unstructured data
         if unstructured is not None:
             if not isinstance(unstructured, dict):
@@ -169,9 +170,9 @@ class MultiIndexable:
             self._unstructured = unstructured.copy()
         else:
             self._unstructured = {}
-        
+
         # Check for single dictionary as positional argument
-        if (len(indexables) == 1 and isinstance(indexables[0], dict) 
+        if (len(indexables) == 1 and isinstance(indexables[0], dict)
             and not named_indexables and names is None):
             # Dictionary passed as positional argument
             data_dict = indexables[0]
@@ -199,22 +200,22 @@ class MultiIndexable:
                 self._mapping = None
         else:
             raise TypeError("Must provide at least one indexable object")
-        
+
         # Validate that all indexables have the same length
         if not self._indexables:
             raise ValueError("No indexables provided")
-            
+
         try:
             first_len = len(self._indexables[0])
         except TypeError:
             raise TypeError("All indexables must support len() operation")
-            
+
         for i, indexable in enumerate(self._indexables[1:], start=1):
             try:
                 curr_len = len(indexable)
             except TypeError:
                 raise TypeError(f"Indexable at position {i} does not support len() operation")
-                
+
             if curr_len != first_len:
                 name_info = f" ('{self._names[i]}')" if self._names else ""
                 raise ValueError(
@@ -222,17 +223,17 @@ class MultiIndexable:
                     f"First indexable has length {first_len}, but indexable {i}{name_info} "
                     f"has length {curr_len}"
                 )
-    
+
     @property
     def names(self) -> Optional[List[str]]:
         """Names of the indexables, if provided."""
         return self._names.copy() if self._names else None
-    
-    @property 
+
+    @property
     def count(self) -> int:
         """Number of indexables contained in this object."""
         return len(self._indexables)
-    
+
     @property
     def unstructured(self) -> Dict[str, Any]:
         """
@@ -257,7 +258,7 @@ class MultiIndexable:
         ['A', 'B', 'C', 'D', 'E']
         """
         return self._unstructured
-    
+
     @property
     def unstructured_keys(self) -> List[str]:
         """
@@ -278,7 +279,7 @@ class MultiIndexable:
         ['gene_names', 'dataset']
         """
         return list(self._unstructured.keys())
-    
+
     def __getitem__(self, key: Union[int, str, slice, Sequence[int], np.ndarray]):
         """
         Index the MultiIndexable object.
@@ -308,7 +309,7 @@ class MultiIndexable:
             if not 0 <= key < len(self._indexables):
                 raise IndexError(f"Index {key} out of range for {len(self._indexables)} indexables")
             return self._indexables[key]
-        
+
         elif isinstance(key, str):
             # Return the named indexable
             if self._mapping is None:
@@ -316,14 +317,14 @@ class MultiIndexable:
             if key not in self._mapping:
                 raise KeyError(f"Key '{key}' not found. Available keys: {list(self._mapping.keys())}")
             return self._mapping[key]
-        
+
         else:
             # Sample indices - return new MultiIndexable with subsets
             try:
                 subset_indexables = [indexable[key] for indexable in self._indexables]
             except (IndexError, TypeError) as e:
                 raise IndexError(f"Invalid indices for sample selection: {e}")
-            
+
             # Preserve names and unstructured data if any
             if self._mapping:
                 return MultiIndexable(
@@ -335,11 +336,11 @@ class MultiIndexable:
                     *subset_indexables,
                     unstructured=self._unstructured if self._unstructured else None
                 )
-    
+
     def __len__(self) -> int:
         """Return the number of samples (length of first dimension)."""
         return len(self._indexables[0]) if self._indexables else 0
-    
+
     def __repr__(self) -> str:
         """Return string representation of the MultiIndexable."""
         n_samples = len(self)
@@ -347,19 +348,19 @@ class MultiIndexable:
             indexable_info = f"names={self._names}"
         else:
             indexable_info = f"count={self.count}"
-        
+
         # Add unstructured info if present
         if self._unstructured:
             unstructured_info = f", unstructured_keys={list(self._unstructured.keys())}"
         else:
             unstructured_info = ""
-            
+
         return f"MultiIndexable({indexable_info}, samples={n_samples}{unstructured_info})"
-    
+
     def __iter__(self):
         """Iterate over indexables."""
         return iter(self._indexables)
-    
+
     def items(self):
         """
         Iterate over (name, indexable) pairs.
@@ -376,7 +377,7 @@ class MultiIndexable:
         else:
             for i, indexable in enumerate(self._indexables):
                 yield i, indexable
-    
+
     def keys(self):
         """
         Get the names or indices of indexables.
@@ -387,7 +388,7 @@ class MultiIndexable:
             List of names if available, list of indices otherwise.
         """
         return self._names.copy() if self._names else list(range(len(self._indexables)))
-    
+
     def values(self):
         """
         Get the indexable objects.

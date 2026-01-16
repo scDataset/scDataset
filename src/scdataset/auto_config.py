@@ -14,7 +14,7 @@ for scDataset based on system resources and data characteristics.
 import os
 import sys
 import warnings
-from typing import Dict, Any
+from typing import Any, Dict
 
 import numpy as np
 
@@ -54,10 +54,10 @@ def estimate_sample_size(data_collection, n_samples: int = 16) -> int:
     """
     n_samples = min(n_samples, len(data_collection))
     sizes = []
-    
+
     for i in range(n_samples):
         sample = data_collection[i]
-        
+
         # Handle different sample types
         if hasattr(sample, 'nbytes'):
             # NumPy array
@@ -82,7 +82,7 @@ def estimate_sample_size(data_collection, n_samples: int = 16) -> int:
             sizes.append(total)
         else:
             sizes.append(sys.getsizeof(sample))
-    
+
     return int(np.mean(sizes)) if sizes else 0
 
 
@@ -199,7 +199,7 @@ def suggest_parameters(
     """
     result = {}
     system_info = {}
-    
+
     # Try to get system information
     try:
         import psutil
@@ -223,20 +223,20 @@ def suggest_parameters(
         system_info['total_ram_gb'] = 'unknown (psutil not installed)'
         system_info['cpu_count'] = cpu_count
         has_psutil = False
-    
+
     # Calculate num_workers
     num_workers = min(max(cpu_count // 2, min_workers), max_workers)
     result['num_workers'] = num_workers
-    
+
     # Estimate sample size
     sample_size = estimate_sample_size(data_collection)
     system_info['estimated_sample_size_bytes'] = sample_size
-    
+
     # Calculate maximum fetch_factor based on RAM constraint
     # Formula: 2 * batch_size * fetch_factor * num_workers * sample_size < target_ram_fraction * available_ram
     # The factor of 2 accounts for prefetch_factor = fetch_factor + 1 (prefetch buffer doubles memory)
     target_ram = target_ram_fraction * available_ram
-    
+
     if sample_size > 0 and batch_size > 0 and num_workers > 0:
         # Account for prefetch doubling memory (factor of 2)
         max_fetch_factor = int(target_ram / (2 * batch_size * num_workers * sample_size))
@@ -244,25 +244,25 @@ def suggest_parameters(
         fetch_factor = max(1, min(max_fetch_factor, 256))
     else:
         fetch_factor = 8  # Default fallback
-    
+
     result['fetch_factor'] = fetch_factor
-    
+
     # Calculate block sizes
     result['block_size_conservative'] = max(1, fetch_factor // 2)
     result['block_size_balanced'] = max(1, fetch_factor)
     result['block_size_aggressive'] = max(1, fetch_factor * 2)
-    
+
     # Prefetch factor should be fetch_factor + 1 for optimal performance
     result['prefetch_factor'] = fetch_factor + 1
-    
+
     # Calculate estimated memory usage (includes prefetch buffer - hence * 2)
     memory_per_fetch = batch_size * fetch_factor * sample_size
     memory_total = memory_per_fetch * num_workers * 2  # * 2 for prefetch buffer
     result['estimated_memory_per_fetch_mb'] = memory_per_fetch / (1024**2)
     result['estimated_total_memory_mb'] = memory_total / (1024**2)
-    
+
     result['system_info'] = system_info
-    
+
     if verbose:
         print("=" * 60)
         print("scDataset Parameter Suggestions")
@@ -302,5 +302,5 @@ def suggest_parameters(
         print("  • Increase fetch_factor if I/O is the bottleneck")
         print("  • Decrease num_workers if memory is constrained")
         print("=" * 60)
-    
+
     return result

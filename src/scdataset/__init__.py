@@ -114,25 +114,25 @@ Performance Tips
 # * :doc:`/api/index` - Complete API reference
 # * :doc:`/examples/index` - Usage examples and tutorials
 
+from .auto_config import estimate_sample_size, suggest_parameters
+from .multiindexable import MultiIndexable
 from .scdataset import scDataset
 from .strategy import (
+    BlockShuffling,
+    BlockWeightedSampling,
+    ClassBalancedSampling,
     SamplingStrategy,
-    Streaming, 
-    BlockShuffling, 
-    BlockWeightedSampling, 
-    ClassBalancedSampling
+    Streaming,
 )
-from .multiindexable import MultiIndexable
-from .auto_config import suggest_parameters, estimate_sample_size
 from .transforms import fetch_transform_adata, fetch_transform_hf
 
 __version__ = "0.3.0"
 
 __all__ = [
     "scDataset",
-    "SamplingStrategy", 
+    "SamplingStrategy",
     "Streaming",
-    "BlockShuffling", 
+    "BlockShuffling",
     "BlockWeightedSampling",
     "ClassBalancedSampling",
     "MultiIndexable",

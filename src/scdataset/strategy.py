@@ -15,15 +15,15 @@ ordered for data loading.
    ClassBalancedSampling
 """
 
-import numpy as np
 import warnings
 from typing import Optional
-from numpy.typing import NDArray, ArrayLike
 
+import numpy as np
+from numpy.typing import ArrayLike, NDArray
 
 __all__ = [
     "SamplingStrategy",
-    "Streaming", 
+    "Streaming",
     "BlockShuffling",
     "BlockWeightedSampling",
     "ClassBalancedSampling",
@@ -61,7 +61,7 @@ class SamplingStrategy:
     ...     def get_indices(self, data_collection, seed=None, rng=None):
     ...         return np.arange(len(data_collection))
     """
-    
+
     def __init__(self, indices: Optional[ArrayLike] = None):
         """
         Initialize the sampling strategy.
@@ -74,7 +74,7 @@ class SamplingStrategy:
         """
         self._shuffle_before_yield = None
         self._indices = self._validate_and_sort_indices(indices)
-    
+
     def _validate_and_sort_indices(self, indices: Optional[ArrayLike]) -> Optional[np.ndarray]:
         """
         Validate and sort indices for optimal I/O performance.
@@ -100,7 +100,7 @@ class SamplingStrategy:
         """
         if indices is None:
             return None
-        
+
         indices = np.asarray(indices)
         sorted_indices = np.sort(indices)
         if not np.array_equal(indices, sorted_indices):
@@ -111,7 +111,7 @@ class SamplingStrategy:
                 UserWarning
             )
         return sorted_indices
-        
+
     def get_indices(self, data_collection, seed: Optional[int] = None, rng: Optional[np.random.Generator] = None) -> NDArray[np.intp]:
         """
         Generate indices for sampling from the data collection.
@@ -138,7 +138,7 @@ class SamplingStrategy:
             Always raised as this is an abstract method.
         """
         raise NotImplementedError("Subclasses must implement get_indices method")
-    
+
     def _get_rng(self, seed: Optional[int] = None, rng: Optional[np.random.Generator] = None) -> np.random.Generator:
         """
         Get a random number generator from seed or rng parameter.
@@ -168,7 +168,7 @@ class SamplingStrategy:
         if rng is not None:
             return rng
         return np.random.default_rng(seed)
-    
+
 class Streaming(SamplingStrategy):
     """
     Sequential streaming sampling strategy with optional buffer-level shuffling.
@@ -234,7 +234,7 @@ class Streaming(SamplingStrategy):
     the overall sequential order of fetch buffers, only shuffling within
     each buffer, while BlockShuffling shuffles the order of blocks themselves.
     """
-    
+
     def __init__(self, indices: Optional[ArrayLike] = None, shuffle: bool = False):
         """
         Initialize streaming strategy.
@@ -386,7 +386,7 @@ class BlockShuffling(SamplingStrategy):
     Streaming : For sequential sampling without shuffling
     BlockWeightedSampling : For weighted block-based sampling
     """
-    
+
     def __init__(self, block_size: int = 8, indices: Optional[ArrayLike] = None, drop_last: bool = False):
         """
         Initialize block shuffling strategy.
@@ -441,12 +441,12 @@ class BlockShuffling(SamplingStrategy):
         9
         """
         if self._indices is None:
-            l = len(data_collection)
+            length = len(data_collection)
         else:
-            l = len(self._indices)
+            length = len(self._indices)
         if self.drop_last:
-            l -= l % self.block_size
-        return l
+            length -= length % self.block_size
+        return length
 
     def get_indices(self, data_collection, seed: Optional[int] = None, rng: Optional[np.random.Generator] = None) -> NDArray[np.intp]:
         """
@@ -505,7 +505,7 @@ class BlockShuffling(SamplingStrategy):
         n_blocks = n // self.block_size
         n_complete = n_blocks * self.block_size
         remainder = n - n_complete
-                
+
         if self.drop_last and remainder > 0:
             remove_indices = rng_obj.choice(indices, size=remainder, replace=False)
             mask = ~np.isin(indices, remove_indices)
@@ -516,9 +516,9 @@ class BlockShuffling(SamplingStrategy):
         # Reshape complete part into blocks
         blocks = complete_part.reshape(n_blocks, self.block_size)
         blocks = rng_obj.permutation(blocks, axis=0)
-        
+
         if self.drop_last or remainder == 0:
-            return blocks.reshape(-1) 
+            return blocks.reshape(-1)
         else:
             # Insert remainder block at a random block boundary
             insert_pos = rng_obj.integers(0, n_blocks + 1)
@@ -607,14 +607,14 @@ class BlockWeightedSampling(SamplingStrategy):
     BlockShuffling : For unweighted block-based shuffling
     ClassBalancedSampling : For automatic class-balanced sampling
     """
-    
+
     def __init__(
-        self, 
-        block_size: int = 8, 
-        indices: Optional[ArrayLike] = None, 
-        weights: Optional[ArrayLike] = None, 
-        total_size: Optional[int] = None, 
-        replace: bool = True, 
+        self,
+        block_size: int = 8,
+        indices: Optional[ArrayLike] = None,
+        weights: Optional[ArrayLike] = None,
+        total_size: Optional[int] = None,
+        replace: bool = True,
         sampling_size: Optional[int] = None
     ):
         """
@@ -660,7 +660,7 @@ class BlockWeightedSampling(SamplingStrategy):
         self.replace = replace
         if not replace and sampling_size is None:
             raise ValueError("sampling_size must be provided when replace=False")
-            
+
         if replace and sampling_size is not None:
             warnings.warn("sampling_size is ignored when replace=True, since it will sample with replacement")
         self.sampling_size = sampling_size
@@ -693,14 +693,14 @@ class BlockWeightedSampling(SamplingStrategy):
         50
         """
         if self.total_size is not None:
-            l = self.total_size
+            length = self.total_size
         else:
             # Use the length of indices or data_collection if total_size not specified
             if self._indices is None:
-                l = len(data_collection)
+                length = len(data_collection)
             else:
-                l = len(self._indices)
-        return l
+                length = len(self._indices)
+        return length
 
     def get_indices(self, data_collection, seed: Optional[int] = None, rng: Optional[np.random.Generator] = None) -> NDArray[np.intp]:
         """
@@ -804,9 +804,9 @@ class BlockWeightedSampling(SamplingStrategy):
                 indices_list.append(new_indices)
                 sampled += len(new_indices)
             indices = np.concatenate(indices_list)
-            
+
         indices.sort()
-            
+
         n = len(indices)
         n_blocks = n // self.block_size
         n_complete = n_blocks * self.block_size
@@ -827,7 +827,7 @@ class BlockWeightedSampling(SamplingStrategy):
             before = blocks[:insert_pos].reshape(-1)
             after = blocks[insert_pos:].reshape(-1)
             return np.concatenate([before, remainder_part, after])
-        
+
 
 class ClassBalancedSampling(BlockWeightedSampling):
     """
@@ -841,12 +841,29 @@ class ClassBalancedSampling(BlockWeightedSampling):
     underrepresented classes get higher sampling probability and overrepresented
     classes get lower sampling probability.
     
+    **Dual Behavior for Labels:**
+    
+    The strategy supports two modes based on the labels array length:
+    
+    1. **Global class balancing** (labels length = full dataset):
+       Weights are computed from the full dataset's class distribution. When
+       sampling from a subset (via ``indices``), samples are weighted according
+       to their importance in the global distribution, not the subset.
+       
+    2. **Subset class balancing** (labels length = indices length):
+       Weights are computed only from the labels of the subset indices.
+       This balances classes within the subset, ignoring the global distribution.
+    
     Parameters
     ----------
     labels : array-like
-        Class labels for each sample. Can be numpy array, pandas Series, or any
-        array-like object. Must have the same length as the data collection
-        (validated during get_indices).
+        Class labels for each sample. The length determines the balancing mode:
+        
+        - If ``len(labels) == len(data_collection)``: Global balancing mode.
+          Weights computed from full dataset, then applied to subset.
+        - If ``len(labels) == len(indices)``: Subset balancing mode.
+          Weights computed only from the subset's labels.
+          
     block_size : int, default=8
         Size of blocks for block shuffling after sampling.
     indices : array-like, optional
@@ -864,6 +881,8 @@ class ClassBalancedSampling(BlockWeightedSampling):
     ----------
     labels : numpy.ndarray
         Array of class labels for each sample.
+    _balancing_mode : str
+        Either 'global' or 'subset', determined during get_indices().
     
     Raises
     ------
@@ -872,18 +891,24 @@ class ClassBalancedSampling(BlockWeightedSampling):
         
     Examples
     --------
-    >>> # Balanced sampling from imbalanced dataset
-    >>> labels = [0, 0, 0, 0, 1, 1, 2]  # Imbalanced classes
-    >>> strategy = ClassBalancedSampling(labels, total_size=12)
-    >>> indices = strategy.get_indices(range(7), seed=42)
-    >>> len(indices)
-    12
+    Global balancing - balance for full dataset distribution:
     
-    >>> # Class weights are automatically computed
-    >>> strategy = ClassBalancedSampling([0, 0, 1])
-    >>> # Class 0 appears twice, class 1 once
-    >>> # So class 0 gets weight 1/2 = 0.5, class 1 gets weight 1/1 = 1.0
-    >>> # After normalization: class 0 weight ≈ 0.33, class 1 weight ≈ 0.67
+    >>> # Full dataset: 90% class 0, 10% class 1
+    >>> full_labels = [0]*90 + [1]*10  # 100 samples total
+    >>> subset_indices = [0, 1, 90, 91, 92, 93, 94, 95, 96, 97]  # 2 of class 0, 8 of class 1
+    >>> 
+    >>> # Global balancing: uses full dataset weights
+    >>> strategy = ClassBalancedSampling(full_labels, indices=subset_indices, total_size=20)
+    >>> # Class 1 samples get ~9x higher weight (because 1/10 vs 1/90 in global dist)
+    >>> # Even though subset is 80% class 1, global weights still favor class 1
+    
+    Subset balancing - balance within the subset only:
+    
+    >>> # Only provide labels for the subset indices
+    >>> subset_labels = [0, 0, 1, 1, 1, 1, 1, 1, 1, 1]  # Labels for subset: 20% class 0, 80% class 1
+    >>> strategy = ClassBalancedSampling(subset_labels, indices=subset_indices, total_size=20)
+    >>> # Now class 0 samples get 4x higher weight (because 1/2 vs 1/8 in subset dist)
+    >>> # This balances within the subset, ignoring global distribution
     
     See Also
     --------
@@ -896,15 +921,19 @@ class ClassBalancedSampling(BlockWeightedSampling):
     sampled, not that each class appears equally often in the final sample.
     The actual class distribution in samples will depend on the random sampling
     process and may vary between different runs.
-    """
     
+    When using global balancing with a subset that has different class proportions
+    than the full dataset, the output may appear imbalanced relative to the subset.
+    This is intentional - the weights reflect global importance.
+    """
+
     def __init__(
-        self, 
-        labels: ArrayLike, 
-        block_size: int = 8, 
-        indices: Optional[ArrayLike] = None, 
-        total_size: Optional[int] = None, 
-        replace: bool = True, 
+        self,
+        labels: ArrayLike,
+        block_size: int = 8,
+        indices: Optional[ArrayLike] = None,
+        total_size: Optional[int] = None,
+        replace: bool = True,
         sampling_size: Optional[int] = None
     ):
         """
@@ -913,7 +942,13 @@ class ClassBalancedSampling(BlockWeightedSampling):
         Parameters
         ----------
         labels : array-like
-            Class labels for each sample in the data collection.
+            Class labels for samples. The length of labels determines the 
+            balancing mode (see class docstring for details):
+            
+            - If ``len(labels) == len(indices)``: **subset balancing** mode.
+              Labels correspond to the subset samples only.
+            - If ``len(labels) > len(indices)``: **global balancing** mode.
+              Labels correspond to the full dataset.
         block_size : int, default=8
             Size of blocks for shuffling. Must be positive.
         indices : array-like, optional
@@ -928,12 +963,33 @@ class ClassBalancedSampling(BlockWeightedSampling):
         Raises
         ------
         ValueError
-            If labels array is empty or block_size is not positive.
+            If labels array is empty, block_size is not positive, or labels
+            length doesn't match indices length (for subset mode) or exceed it
+            (for global mode).
         """
         # Store labels and validate basic properties
         self.labels = np.asarray(labels)
         if len(self.labels) == 0:
             raise ValueError("labels cannot be empty")
+
+        # Store indices for mode detection in _compute_class_weights
+        self._init_indices = np.asarray(indices) if indices is not None else None
+
+        # Determine balancing mode based on labels length vs indices length
+        if self._init_indices is not None:
+            if len(self.labels) == len(self._init_indices):
+                self._balancing_mode = "subset"
+            elif len(self.labels) > len(self._init_indices):
+                self._balancing_mode = "global"
+            else:
+                raise ValueError(
+                    f"labels length ({len(self.labels)}) must be either equal to "
+                    f"indices length ({len(self._init_indices)}) for subset balancing, "
+                    f"or greater than indices length for global balancing"
+                )
+        else:
+            # No indices provided - labels must match full dataset
+            self._balancing_mode = "global"
 
         weights = self._compute_class_weights()
 
@@ -945,29 +1001,28 @@ class ClassBalancedSampling(BlockWeightedSampling):
             replace=replace,
             sampling_size=sampling_size
         )
-    
+
     def _compute_class_weights(self) -> NDArray[np.floating]:
         """
         Compute balanced weights for each sample based on inverse class frequency.
         
-        Computes weights that are inversely proportional to class frequency
-        in the FULL dataset (self.labels), ensuring that global class importance
-        is preserved even when sampling from a subset via indices.
+        The weight computation depends on the balancing mode:
         
-        When indices are provided to ClassBalancedSampling, the weights for
-        all samples are computed from the full label array. BlockWeightedSampling
-        (parent class) then subsets and renormalizes these weights to create
-        a probability distribution over the subset indices.
-        
-        This means: if the full dataset is 90% class A and 10% class B, 
-        class B samples will have ~9x higher weight even when sampling from
-        a subset that happens to be 50% A and 50% B.
+        - **Subset mode** (``len(labels) == len(indices)``): Weights are computed
+          from the provided labels directly, which represent the subset's class
+          distribution. This balances classes relative to the subset.
+          
+        - **Global mode** (``len(labels) > len(indices)`` or no indices): Weights
+          are computed from the full label array to preserve global class importance.
+          Samples from rare global classes get higher weights even if they're
+          common in the subset.
         
         Returns
         -------
         numpy.ndarray
-            Weights for ALL samples in self.labels (length = len(self.labels)).
-            The parent class handles subsetting to indices.
+            Weights array. In subset mode, length equals ``len(labels)`` which
+            equals ``len(indices)``. In global mode, length equals the full
+            ``len(labels)``, and the parent class handles subsetting.
             
         Notes
         -----
@@ -977,27 +1032,44 @@ class ClassBalancedSampling(BlockWeightedSampling):
         The weights are not normalized to sum to 1.0, as this normalization
         is handled by the parent class :class:`BlockWeightedSampling`.
         
-        Example computation for labels ``[0, 0, 1, 2, 2, 2]``:
-        
-        - Class 0: 2 samples -> weight 1/2 = 0.5 per sample
-        - Class 1: 1 sample  -> weight 1/1 = 1.0 per sample  
-        - Class 2: 3 samples -> weight 1/3 ≈ 0.33 per sample
-        
-        Result: ``array([0.5, 0.5, 1.0, 0.333, 0.333, 0.333])``
+        Example (Subset Mode):
+            For labels ``[0, 0, 1, 2, 2, 2]`` (subset labels only):
+            
+            - Class 0: 2 samples -> weight 1/2 = 0.5 per sample
+            - Class 1: 1 sample  -> weight 1/1 = 1.0 per sample  
+            - Class 2: 3 samples -> weight 1/3 ≈ 0.33 per sample
+            
+            Result: ``array([0.5, 0.5, 1.0, 0.333, 0.333, 0.333])``
+            
+        Example (Global Mode):
+            If full dataset labels are ``[0, 0, 0, 0, 1]`` (80% class 0, 20% class 1)
+            and indices select samples 3, 4 (classes 0, 1):
+            
+            - Class 0: 4 samples globally -> weight 1/4 = 0.25
+            - Class 1: 1 sample globally  -> weight 1/1 = 1.0
+            
+            Subset sample 3 (class 0) gets weight 0.25,
+            Subset sample 4 (class 1) gets weight 1.0.
+            Class 1 samples are 4x more likely to be sampled despite
+            being 50% of the subset.
         """
-        # Always compute on FULL labels to preserve global class importance
-        # The parent class (BlockWeightedSampling) will handle subsetting
-        # to indices and renormalization
-        working_labels = self.labels
-        
+        if self._balancing_mode == "subset":
+            # Subset mode: compute weights from the subset labels directly
+            # In this mode, self.labels has the same length as indices
+            working_labels = self.labels
+        else:
+            # Global mode: compute weights from full label array
+            # The parent class will handle subsetting to indices
+            working_labels = self.labels
+
         unique_classes, class_counts = np.unique(working_labels, return_counts=True)
-        
+
         # Compute inverse frequency weights
         class_weights = 1.0 / class_counts
-        
+
         # Create sample weights by mapping class weights to each sample
         weights = np.zeros(len(working_labels))
         for cls, weight in zip(unique_classes, class_weights):
             weights[working_labels == cls] = weight
-        
+
         return weights
