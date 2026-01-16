@@ -126,7 +126,7 @@ from .multiindexable import MultiIndexable
 from .auto_config import suggest_parameters, estimate_sample_size
 from .transforms import fetch_transform_adata, fetch_transform_hf
 
-__version__ = "0.2.1"
+__version__ = "0.3.0"
 
 __all__ = [
     "scDataset",

@@ -1,8 +1,31 @@
 Changelog
 =========
 
-[0.2.1] - 2025-01-XX
+[0.3.0] - 2025-01-16
 ---------------------
+
+**Major Features**
+~~~~~~~~~~~~~~~~~~
+
+* **Automatic epoch handling**: The dataset now automatically increments an internal
+  epoch counter each time it is iterated. This eliminates the need for manual
+  epoch tracking while ensuring different shuffling each epoch.
+  
+  * New ``seed`` parameter in constructor for setting base seed for reproducibility
+  * Auto-incrementing epoch combined with seed ensures deterministic but varying shuffling
+
+* **Native DDP support**: Full Distributed Data Parallel support with round-robin
+  fetch distribution across ranks. Auto-detects ``torch.distributed`` settings.
+  
+  * Weighted sampling works with DDP (first implementation to our knowledge)
+  * All sampling strategies (Streaming, BlockShuffling, BlockWeightedSampling, 
+    ClassBalancedSampling) work seamlessly with DDP
+  * No ``DistributedSampler`` needed - partitioning handled internally
+
+* **Built-in transform functions** (``transforms.py``):
+  
+  * ``fetch_transform_adata()`` - Transform AnnData/AnnCollection to MultiIndexable
+  * ``fetch_transform_hf()`` - Convert HuggingFace sparse data to dense tensors
 
 **Bug Fixes**
 ~~~~~~~~~~~~~
@@ -84,7 +107,7 @@ Changelog
 
 * **Added BlockWeightedSampling to benchmarks**: Now evaluates all sampling strategies
 
-* **Version bumped to 0.2.1** in ``__init__.py`` and ``pyproject.toml``
+* **Version bumped to 0.3.0** in ``__init__.py`` and ``pyproject.toml``
 
 **Dependencies**
 ~~~~~~~~~~~~~~~~

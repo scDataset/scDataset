@@ -16,7 +16,7 @@ only its assigned portion of the data, ensuring no overlap.
 
 - **Automatic rank detection**: Works with ``torch.distributed`` environment variables
 - **Round-robin partitioning**: Even distribution of data across all ranks
-- **Per-epoch shuffling**: Call ``set_epoch()`` to ensure different data ordering each epoch
+- **Per-epoch shuffling**: Automatic epoch counter ensures different data ordering each epoch
 - **Deterministic splits**: Same data partition for a given rank/world_size/seed
 
 Basic DDP Setup
@@ -66,9 +66,7 @@ Basic DDP Setup
         model = DDP(model, device_ids=[local_rank])
         
         for epoch in range(num_epochs):
-            # IMPORTANT: Call set_epoch for proper shuffling
-            dataset.set_epoch(epoch)
-            
+            # No set_epoch needed! Shuffling changes automatically each epoch.
             for batch in loader:
                 batch = batch.to(local_rank)
                 # Training code here
@@ -119,25 +117,28 @@ independently without communication during data loading.
     # - Rank 1: samples at positions 1, 5, 9, ... (250 samples)
     # etc.
 
-The ``set_epoch()`` Method
---------------------------
+Automatic Epoch Handling
+------------------------
 
-When using shuffling strategies with DDP, call ``set_epoch(epoch)`` at the start 
-of each epoch. This ensures:
+.. versionadded:: 0.3.0
 
-1. Different random permutations each epoch
-2. Consistent ordering across workers for the same epoch
-3. Reproducible results with the same seed
+``scDataset`` automatically increments an internal epoch counter each time the 
+dataset is iterated. This means different shuffling happens automatically each epoch.
 
 .. code-block:: python
 
+    # Different shuffling each epoch automatically.
     for epoch in range(100):
-        dataset.set_epoch(epoch)  # New shuffling for each epoch
         for batch in loader:
             train_step(batch)
+        # Epoch counter auto-increments when iteration completes
 
-Without ``set_epoch()``, the same data order would be used every epoch, which 
-can harm model convergence.
+For reproducibility across runs, you can set a base seed in the constructor:
+
+.. code-block:: python
+
+    dataset = scDataset(adata, strategy, batch_size=128, seed=42)
+    # Same seed = same shuffling sequence across runs
 
 Launching Distributed Training
 ------------------------------
@@ -209,10 +210,8 @@ Here's a complete example with all components:
         optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
         criterion = nn.MSELoss()
         
-        # Training loop
+        # Training loop - shuffling changes automatically each epoch!
         for epoch in range(10):
-            dataset.set_epoch(epoch)  # Important for shuffling
-            
             for batch_idx, batch in enumerate(loader):
                 batch = batch.to(local_rank)
                 
@@ -231,20 +230,163 @@ Here's a complete example with all components:
     if __name__ == "__main__":
         train()
 
+Weighted Sampling with DDP
+--------------------------
+
+.. versionadded:: 0.3.0
+
+One of ``scDataset``'s unique advantages is native support for **weighted sampling 
+in distributed training scenarios**. This is a capability that PyTorch does not 
+provide out of the box.
+
+**The Problem with PyTorch's Approach**
+
+PyTorch provides ``WeightedRandomSampler`` for handling class imbalance and 
+``DistributedSampler`` for distributed training, but these two components do not 
+work together natively. This limitation has been a persistent challenge in the 
+PyTorch ecosystem:
+
+- ``DistributedSampler`` partitions data deterministically across processes
+- ``WeightedRandomSampler`` uses probabilistic multinomial sampling
+- Combining them naively leads to incorrect behavior or overlapping data across GPUs
+
+The community has produced various workarounds (e.g., ``DistributedSamplerWrapper``
+from Catalyst), but these require careful seed management and have subtle edge cases.
+As of January 2026, there is an `open PR in PyTorch <https://github.com/pytorch/pytorch/pull/150182>`_ 
+to add ``DistributedWeightedRandomSampler``, but this has not yet been merged.
+
+**scDataset's Solution**
+
+With ``scDataset``, weighted sampling and distributed training are **decoupled by design**.
+The sampling strategy operates on the data collection level, and DDP partitioning 
+is applied automatically on top of that. This means you can use any strategy—including
+``BlockWeightedSampling`` and ``ClassBalancedSampling``—without any special configuration:
+
+.. code-block:: python
+
+    import torch.distributed as dist
+    from scdataset import scDataset, BlockWeightedSampling
+    
+    dist.init_process_group(backend="nccl")
+    
+    # Weighted sampling just works in DDP - no special wrappers needed!
+    weights = compute_sample_weights(adata.obs['cell_type'])  # Your weights
+    
+    dataset = scDataset(
+        adata,
+        BlockWeightedSampling(
+            weights=weights,
+            total_size=10000,
+            block_size=64
+        ),
+        batch_size=128,
+        fetch_callback=my_fetch_fn
+    )
+    
+    # Each GPU gets a different portion of the weighted-sampled data
+    loader = DataLoader(dataset, batch_size=None, num_workers=4)
+
+**Class-Balanced Sampling in DDP**
+
+For the common use case of handling class imbalance, ``ClassBalancedSampling`` 
+automatically computes weights inversely proportional to class frequencies:
+
+.. code-block:: python
+
+    from scdataset import scDataset, ClassBalancedSampling
+    
+    # Automatically balances rare cell types
+    dataset = scDataset(
+        adata,
+        ClassBalancedSampling(
+            label_key="cell_type",  # Column in adata.obs
+            block_size=64,
+            smoothing=0.1  # Prevents over-sampling of very rare classes
+        ),
+        batch_size=128,
+        fetch_callback=my_fetch_fn
+    )
+    
+    # Works seamlessly in DDP - rare classes are represented on all GPUs
+
+**Why This Matters**
+
+To the best of our knowledge, ``scDataset`` is among the first libraries to provide 
+efficient on-disk weighted sampling that works natively with DDP. This is possible 
+because:
+
+1. **Strategy and distribution are decoupled**: The sampling strategy generates 
+   indices, and DDP partitioning is applied afterward
+2. **Deterministic seeding**: All ranks use the same base seed plus epoch offset,
+   ensuring coordinated but different data across GPUs
+3. **On-disk efficiency**: Unlike PyTorch's in-memory approach, ``scDataset`` reads
+   only the needed samples from disk, making large-scale weighted sampling practical
+
+DDP with Any Strategy
+---------------------
+
+``scDataset`` supports **any sampling strategy in DDP mode**. The distributed 
+partitioning layer is orthogonal to the strategy layer:
+
+.. list-table:: Strategy-DDP Compatibility
+   :header-rows: 1
+   :widths: 30 70
+   
+   * - Strategy
+     - Description
+   * - ``Streaming``
+     - Simple sequential access, partitioned across GPUs
+   * - ``BlockShuffling``
+     - Block-shuffled access, each GPU gets different blocks
+   * - ``BlockWeightedSampling``
+     - Weighted sampling with DDP partitioning
+   * - ``ClassBalancedSampling``
+     - Class-balanced with automatic DDP support
+
+.. code-block:: python
+
+    # All strategies work the same way in DDP
+    
+    # Simple streaming
+    dataset1 = scDataset(adata, Streaming(), ...)
+    
+    # Block shuffling
+    dataset2 = scDataset(adata, BlockShuffling(block_size=64), ...)
+    
+    # Weighted sampling
+    dataset3 = scDataset(adata, BlockWeightedSampling(weights=w), ...)
+    
+    # Class-balanced
+    dataset4 = scDataset(adata, ClassBalancedSampling(label_key="ct"), ...)
+    
+    # All automatically partition data across GPUs when run with torchrun
+
 Best Practices
 --------------
 
-1. **Always call ``set_epoch()``**: Essential for proper shuffling across epochs
+1. **No DistributedSampler needed**: ``scDataset`` handles partitioning internally
 
-2. **No DistributedSampler needed**: ``scDataset`` handles partitioning internally
+2. **Use ``batch_size=None`` in DataLoader**: Batching is handled by ``scDataset``
 
-3. **Use ``batch_size=None`` in DataLoader**: Batching is handled by ``scDataset``
-
-4. **Backed mode for large files**: Use ``ad.read_h5ad(path, backed='r')`` to avoid 
+3. **Backed mode for large files**: Use ``ad.read_h5ad(path, backed='r')`` to avoid 
    loading entire datasets into memory on each rank
 
-5. **Same data across ranks**: Ensure all ranks can access the same data files
+4. **Same data across ranks**: Ensure all ranks can access the same data files
 
-6. **Logging on rank 0 only**: Print/log only from rank 0 to avoid duplicate output
+5. **Logging on rank 0 only**: Print/log only from rank 0 to avoid duplicate output
 
-7. **Synchronize when needed**: Use ``dist.barrier()`` for synchronization points
+6. **Synchronize when needed**: Use ``dist.barrier()`` for synchronization points
+
+7. **Set seed for reproducibility**: Use the ``seed`` parameter (e.g., ``seed=42``) 
+   if you need identical shuffling sequences across different runs
+
+8. **Weighted sampling works out of the box**: Use ``BlockWeightedSampling`` or 
+   ``ClassBalancedSampling`` in DDP without any special configuration
+
+Further Reading
+---------------
+
+- `PyTorch DDP Tutorial <https://pytorch.org/tutorials/intermediate/ddp_tutorial.html>`_
+- `PyTorch DistributedSampler Documentation <https://pytorch.org/docs/stable/data.html#torch.utils.data.distributed.DistributedSampler>`_
+- `PyTorch Issue #77154 <https://github.com/pytorch/pytorch/issues/77154>`_ - Feature request for DistributedWeightedRandomSampler
+- `PyTorch PR #150182 <https://github.com/pytorch/pytorch/pull/150182>`_ - Proposed DistributedWeightedRandomSampler (not yet merged)

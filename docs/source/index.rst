@@ -9,8 +9,8 @@ scDataset Documentation
    :target: https://opensource.org/licenses/MIT
    :alt: License: MIT
 
-.. image:: https://img.shields.io/badge/docs-scdataset.readthedocs.io-blue.svg
-   :target: https://scdataset.readthedocs.io/
+.. image:: https://img.shields.io/badge/docs-scdataset.github.io-blue.svg
+   :target: https://scdataset.github.io/
    :alt: Documentation
 
 .. image:: https://img.shields.io/badge/arXiv-2506.01883-b31b1b.svg
@@ -19,7 +19,7 @@ scDataset Documentation
 
 **Scalable Data Loading for Deep Learning on Large-Scale Single-Cell Omics**
 
-.. image:: https://github.com/Kidara/scDataset/raw/main/figures/scdataset.png
+.. image:: https://github.com/scDataset/scDataset/raw/main/figures/scdataset.png
    :alt: scDataset architecture
    :align: center
 

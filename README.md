@@ -3,15 +3,16 @@
 [![PyPI version](https://badge.fury.io/py/scDataset.svg)](https://pypi.org/project/scDataset/)
 [![PyPI Downloads](https://static.pepy.tech/personalized-badge/scdataset?period=total&units=INTERNATIONAL_SYSTEM&left_color=BLACK&right_color=ORANGE&left_text=downloads)](https://pepy.tech/projects/scdataset)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
-[![Coverage](https://img.shields.io/badge/coverage-91%25-brightgreen.svg)](https://github.com/Kidara/scDataset)
-[![Documentation](https://img.shields.io/badge/docs-scdataset.readthedocs.io-blue.svg)](https://scdataset.readthedocs.io/)
+[![Tests](https://github.com/scDataset/scDataset/actions/workflows/tests.yml/badge.svg)](https://github.com/scDataset/scDataset/actions/workflows/tests.yml)
+[![codecov](https://codecov.io/gh/scDataset/scDataset/branch/main/graph/badge.svg)](https://codecov.io/gh/scDataset/scDataset)
+[![Documentation](https://img.shields.io/badge/docs-scdataset.github.io-blue.svg)](https://scdataset.github.io/)
 [![arXiv](https://img.shields.io/badge/arXiv-2506.01883-b31b1b.svg)](https://arxiv.org/abs/2506.01883)
 
 Scalable Data Loading for Deep Learning on Large-Scale Single-Cell Omics
 
 ---
 
-![scDataset architecture](https://github.com/Kidara/scDataset/raw/main/figures/scdataset.png)
+![scDataset architecture](https://github.com/scDataset/scDataset/raw/main/figures/scdataset.png)
 
 **scDataset** is a flexible and efficient PyTorch `IterableDataset` for large-scale single-cell omics datasets. It supports a variety of data formats (e.g., AnnData, HuggingFace Datasets, NumPy arrays) and is designed for high-throughput deep learning workflows. While optimized for single-cell data, it is general-purpose and can be used with any dataset.
 
@@ -34,7 +35,7 @@ pip install scDataset
 Or install the latest development version from GitHub:
 
 ```bash
-pip install git+https://github.com/Kidara/scDataset.git
+pip install git+https://github.com/scDataset/scDataset.git
 ```
 
 ## Usage
@@ -323,6 +324,6 @@ This project is licensed under the MIT License.
 
 ## Contributing
 
-Contributions are welcome! Please open issues or pull requests on [GitHub](https://github.com/Kidara/scDataset).
+Contributions are welcome! Please open issues or pull requests on [GitHub](https://github.com/scDataset/scDataset).
 
 ---

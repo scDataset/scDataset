@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "scDataset"
-version = "0.2.1"
+version = "0.3.0"
 description = "Scalable Data Loading for Deep Learning on Large-Scale Single-Cell Omics"
 authors = [
     { name = "Davide D'Ascenzo", email = "davide.dascenzo.work@gmail.com" }
@@ -39,8 +39,8 @@ auto = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/Kidara/scDataset"
-Issues = "https://github.com/Kidara/scDataset/issues"
+Homepage = "https://github.com/scDataset/scDataset"
+Issues = "https://github.com/scDataset/scDataset/issues"
 Documentation = "https://scdataset.github.io/"
 
 [tool.pytest.ini_options]

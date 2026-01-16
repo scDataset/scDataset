@@ -556,23 +556,15 @@ class TestScDatasetDDP:
         assert dataset.rank == 1
         assert dataset.world_size == 4
     
-    def test_ddp_set_epoch(self, sample_data):
-        """Test set_epoch method."""
-        dataset = scDataset(sample_data, Streaming(), batch_size=64)
-        assert dataset._epoch == 0
-        
-        dataset.set_epoch(5)
-        assert dataset._epoch == 5
-    
     def test_ddp_different_epochs_different_shuffle(self, sample_data):
-        """Test that different epochs produce different shuffling."""
+        """Test that different epochs produce different shuffling via auto-increment."""
         strategy = BlockShuffling(block_size=4)
-        dataset = scDataset(sample_data, strategy, batch_size=64)
+        dataset = scDataset(sample_data, strategy, batch_size=64, seed=42)
         
-        dataset.set_epoch(0)
+        # First iteration (epoch 0)
         batches_epoch0 = [b.copy() for b in dataset]
         
-        dataset.set_epoch(1)
+        # Second iteration (epoch auto-incremented to 1)
         batches_epoch1 = [b.copy() for b in dataset]
         
         # At least some batches should be different
@@ -687,6 +679,62 @@ class TestScDatasetDDP:
             
             assert len(batches_0) > 0, f"Rank 0 empty with {type(strategy).__name__}"
             assert len(batches_1) > 0, f"Rank 1 empty with {type(strategy).__name__}"
+
+    def test_seed_parameter(self, sample_data):
+        """Test seed parameter for reproducibility."""
+        # Default seed
+        dataset = scDataset(sample_data, BlockShuffling(block_size=4), batch_size=64)
+        assert dataset._base_seed == 42  # Default seed
+        
+        # Custom seed via parameter
+        dataset_custom = scDataset(sample_data, BlockShuffling(block_size=4), batch_size=64, seed=123)
+        assert dataset_custom._base_seed == 123
+        
+    def test_auto_epoch_increment(self, sample_data):
+        """Test that epoch auto-increments each iteration."""
+        dataset = scDataset(sample_data, BlockShuffling(block_size=4), batch_size=64)
+        
+        assert dataset._epoch == 0
+        
+        # First iteration
+        list(dataset)
+        assert dataset._epoch == 1
+        
+        # Second iteration
+        list(dataset)
+        assert dataset._epoch == 2
+        
+    def test_auto_epoch_different_shuffling(self, sample_data):
+        """Test that auto-incrementing epoch produces different shuffling."""
+        strategy = BlockShuffling(block_size=4)
+        dataset = scDataset(sample_data, strategy, batch_size=64, seed=42)
+        
+        # First epoch (epoch 0)
+        batches_epoch0 = [b.copy() for b in dataset]
+        
+        # Second epoch (epoch auto-incremented to 1)
+        batches_epoch1 = [b.copy() for b in dataset]
+        
+        # At least some batches should be different
+        any_different = False
+        for b0, b1 in zip(batches_epoch0, batches_epoch1):
+            if not np.array_equal(b0, b1):
+                any_different = True
+                break
+        assert any_different, "Auto-incrementing epoch should produce different shuffling"
+        
+    def test_reproducibility_with_same_seed(self, sample_data):
+        """Test that same seed produces same shuffling sequence."""
+        # Create two datasets with same seed via parameter
+        dataset1 = scDataset(sample_data, BlockShuffling(block_size=4), batch_size=64, seed=42)
+        dataset2 = scDataset(sample_data, BlockShuffling(block_size=4), batch_size=64, seed=42)
+        
+        # First iteration should be identical
+        batches1_e0 = [b.copy() for b in dataset1]
+        batches2_e0 = [b.copy() for b in dataset2]
+        
+        for b1, b2 in zip(batches1_e0, batches2_e0):
+            assert np.array_equal(b1, b2), "Same seed should produce same first epoch"
 
 
 if __name__ == "__main__":

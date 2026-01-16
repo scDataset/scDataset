@@ -15,8 +15,8 @@ sys.path.insert(0, os.path.abspath('../../src'))
 project = 'scDataset'
 copyright = "2025, Davide D'Ascenzo"
 author = "Davide D'Ascenzo"
-version = '0.2.1'
-release = '0.2.1'
+version = '0.3.0'
+release = '0.3.0'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -81,7 +81,7 @@ html_static_path = ['_static']
 
 # Theme options
 html_theme_options = {
-    'repository_url': 'https://github.com/Kidara/scDataset',
+    'repository_url': 'https://github.com/scDataset/scDataset',
     'use_repository_button': True,
     'use_issues_button': True,
     'use_edit_page_button': True,

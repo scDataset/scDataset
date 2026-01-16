@@ -19,7 +19,7 @@ identifiers:
     value: 10.48550/arXiv.2506.01883
     description: arXiv preprint
 repository-code: 'https://github.com/scDataset/scDataset'
-url: 'https://scdataset.readthedocs.io/'
+url: 'https://scdataset.github.io/'
 abstract: >-
   Modern single-cell datasets now comprise hundreds of millions of cells, 
   presenting significant challenges for training deep learning models that 
@@ -46,7 +46,7 @@ keywords:
   - bioinformatics
   - anndata
 license: MIT
-version: 0.2.0
+version: 0.3.0
 date-released: '2025-06-02'
 preferred-citation:
   type: article

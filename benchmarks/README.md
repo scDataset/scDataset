@@ -6,7 +6,7 @@ This is the codebase for reproducing the experiments of the paper:
 
 **"scDataset: Scalable Data Loading for Deep Learning on Large-Scale Single-Cell Omics"**
 
-![scDataset architecture](https://github.com/Kidara/scDataset/raw/main/figures/scdataset.png)
+![scDataset architecture](https://github.com/scDataset/scDataset/raw/main/figures/scdataset.png)
 
 ## Installation
 

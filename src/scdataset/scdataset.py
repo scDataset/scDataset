@@ -63,6 +63,10 @@ class scDataset(IterableDataset):
     world_size : int, optional
         Total number of processes for distributed training (DDP). If None,
         auto-detects from torch.distributed if initialized. Defaults to 1.
+    seed : int, default=42
+        Base seed for reproducible shuffling. Combined with auto-incrementing
+        epoch counter to produce different shuffling each epoch while ensuring
+        reproducibility across runs with the same seed.
 
     Attributes
     ----------
@@ -165,7 +169,8 @@ class scDataset(IterableDataset):
         fetch_callback: Optional[Callable] = None, 
         batch_callback: Optional[Callable] = None,
         rank: Optional[int] = None,
-        world_size: Optional[int] = None
+        world_size: Optional[int] = None,
+        seed: int = 42
     ):
         """
         Initialize the scDataset.
@@ -194,6 +199,10 @@ class scDataset(IterableDataset):
             Process rank for DDP. Auto-detected if None.
         world_size : int, optional
             Number of DDP processes. Auto-detected if None.
+        seed : int, default=42
+            Base seed for reproducible shuffling. Combined with auto-incrementing
+            epoch counter to produce different shuffling each epoch while ensuring
+            reproducibility across runs with the same seed.
         """
         # Input validation
         if batch_size <= 0:
@@ -222,8 +231,10 @@ class scDataset(IterableDataset):
         # DDP support with auto-detection
         self.rank, self.world_size = self._detect_ddp(rank, world_size)
         
-        # Epoch for reproducible shuffling across ranks (use set_epoch to change)
+        # Epoch counter for reproducible shuffling - auto-increments each iteration
         self._epoch = 0
+        # Base seed for deterministic shuffling sequences
+        self._base_seed = seed
     
     def _detect_ddp(self, rank: Optional[int], world_size: Optional[int]) -> tuple:
         """
@@ -260,30 +271,6 @@ class scDataset(IterableDataset):
         final_world_size = world_size if world_size is not None else detected_world_size
         
         return final_rank, final_world_size
-    
-    def set_epoch(self, epoch: int) -> None:
-        """
-        Set the epoch for this dataset.
-        
-        When using DDP, this ensures that each epoch sees a different
-        shuffling of the data while maintaining reproducibility.
-        Should be called before creating the DataLoader iterator for each epoch.
-        
-        Parameters
-        ----------
-        epoch : int
-            Current epoch number.
-            
-        Examples
-        --------
-        >>> from scdataset import scDataset
-        >>> from scdataset.strategy import BlockShuffling
-        >>> dataset = scDataset(range(100), BlockShuffling(), batch_size=10)
-        >>> dataset.set_epoch(5)
-        >>> dataset._epoch
-        5
-        """
-        self._epoch = epoch
         
     def __len__(self) -> int:
         """
@@ -400,20 +387,29 @@ class scDataset(IterableDataset):
         0, world_size, 2*world_size, etc. Rank 1 gets fetches 1, world_size+1,
         2*world_size+1, etc. This ensures even load distribution and that
         all data is processed exactly once across all ranks.
+        
+        **Auto-incrementing epoch**: The epoch counter automatically increments
+        each time the dataset is iterated. This ensures different shuffling
+        each epoch without requiring manual ``set_epoch()`` calls.
         """
         worker_info = get_worker_info()
         
-        # Generate seed for sampling strategy - combine epoch with worker info
-        # All ranks use the same base seed for consistent global ordering
-        base_seed = self._epoch * 1000  # Epoch-based seed for different shuffling per epoch
+        # Generate seed for sampling strategy - combine base_seed with epoch
+        # All ranks use the same seed for consistent global ordering
+        # epoch * 1000 provides sufficient separation between epochs
+        current_seed = self._base_seed + self._epoch * 1000
+        
+        # Auto-increment epoch for next iteration (different shuffling each epoch)
+        self._epoch += 1
         
         if worker_info is None:
-            rng = np.random.default_rng(base_seed)
+            rng = np.random.default_rng(current_seed)
         else:
-            rng = np.random.default_rng(base_seed + worker_info.seed - worker_info.id)
+            # Workers get consistent ordering by using same base seed
+            rng = np.random.default_rng(current_seed + worker_info.seed - worker_info.id)
 
         # Get indices from sampling strategy - same ordering across all ranks
-        indices = self.strategy.get_indices(self.collection, seed=base_seed)
+        indices = self.strategy.get_indices(self.collection, seed=current_seed)
         
         # Calculate fetch ranges
         n = len(indices)

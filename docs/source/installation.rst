@@ -32,4 +32,4 @@ To get the latest development version, install directly from GitHub:
 
 .. code-block:: bash
 
-   pip install git+https://github.com/Kidara/scDataset.git
+   pip install git+https://github.com/scDataset/scDataset.git
