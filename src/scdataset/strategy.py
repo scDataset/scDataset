@@ -17,7 +17,7 @@ ordered for data loading.
 
 import numpy as np
 import warnings
-from typing import Optional, Union
+from typing import Optional
 from numpy.typing import NDArray, ArrayLike
 
 
@@ -42,11 +42,17 @@ class SamplingStrategy:
     ----------
     _shuffle_before_yield : bool or None
         Whether to shuffle indices before yielding batches. Set by subclasses.
+    _indices : numpy.ndarray or None
+        Stored subset of indices if provided. Always sorted for optimal I/O.
         
     Notes
     -----
     All subclasses must implement the :meth:`get_indices` method to define
     their specific sampling behavior.
+    
+    scDataset relies on sorted indices for efficient sequential I/O access
+    patterns. When indices are provided to any strategy, they are automatically
+    sorted to ensure optimal performance.
     
     Examples
     --------
@@ -56,9 +62,55 @@ class SamplingStrategy:
     ...         return np.arange(len(data_collection))
     """
     
-    def __init__(self):
-        """Initialize the sampling strategy."""
+    def __init__(self, indices: Optional[ArrayLike] = None):
+        """
+        Initialize the sampling strategy.
+        
+        Parameters
+        ----------
+        indices : array-like, optional
+            Subset of indices to use for sampling. If provided, they will be
+            automatically sorted to ensure optimal I/O performance.
+        """
         self._shuffle_before_yield = None
+        self._indices = self._validate_and_sort_indices(indices)
+    
+    def _validate_and_sort_indices(self, indices: Optional[ArrayLike]) -> Optional[np.ndarray]:
+        """
+        Validate and sort indices for optimal I/O performance.
+        
+        scDataset relies on sorted indices for efficient sequential I/O access.
+        This method ensures any provided indices are sorted and emits a warning
+        if reordering was necessary.
+        
+        Parameters
+        ----------
+        indices : array-like, optional
+            Indices to validate and sort.
+            
+        Returns
+        -------
+        numpy.ndarray or None
+            Sorted indices array, or None if no indices provided.
+            
+        Warns
+        -----
+        UserWarning
+            If indices were not already sorted and had to be reordered.
+        """
+        if indices is None:
+            return None
+        
+        indices = np.asarray(indices)
+        sorted_indices = np.sort(indices)
+        if not np.array_equal(indices, sorted_indices):
+            warnings.warn(
+                "Provided indices were not sorted. They have been automatically "
+                "sorted to ensure optimal I/O performance. scDataset relies on "
+                "sorted indices for efficient data access patterns.",
+                UserWarning
+            )
+        return sorted_indices
         
     def get_indices(self, data_collection, seed: Optional[int] = None, rng: Optional[np.random.Generator] = None) -> NDArray[np.intp]:
         """
@@ -158,7 +210,7 @@ class Streaming(SamplingStrategy):
     >>> # Stream through subset of indices
     >>> subset_strategy = Streaming(indices=[10, 20, 30])
     >>> indices = subset_strategy.get_indices(range(100))
-    >>> list(indices)
+    >>> indices.tolist()
     [10, 20, 30]
     
     >>> # Stream with buffer-level shuffling (like Ray Dataset/WebDataset)
@@ -191,16 +243,16 @@ class Streaming(SamplingStrategy):
         ----------
         indices : array-like, optional
             Subset of indices to stream through. If None, streams through
-            all available indices.
+            all available indices. Indices will be automatically sorted
+            to ensure optimal I/O performance.
         shuffle : bool, default=False
             Whether to enable buffer-level shuffling. When True, batches
             within each fetch buffer are shuffled while maintaining
             sequential order between buffers.
         """
-        super().__init__()
+        super().__init__(indices=indices)
         self.shuffle = shuffle
         self._shuffle_before_yield = shuffle
-        self._indices = indices
 
     def get_len(self, data_collection) -> int:
         """
@@ -258,18 +310,18 @@ class Streaming(SamplingStrategy):
         --------
         >>> strategy = Streaming()
         >>> indices = strategy.get_indices(range(5))
-        >>> list(indices)
+        >>> indices.tolist()
         [0, 1, 2, 3, 4]
         
         >>> subset_strategy = Streaming(indices=[2, 4, 6])
         >>> indices = subset_strategy.get_indices(range(10))
-        >>> list(indices)
+        >>> indices.tolist()
         [2, 4, 6]
         
         >>> # With shuffle=True, indices are still sequential
         >>> shuffle_strategy = Streaming(shuffle=True)
         >>> indices = shuffle_strategy.get_indices(range(5))
-        >>> list(indices)  # Still sequential - shuffling happens at buffer level
+        >>> indices.tolist()
         [0, 1, 2, 3, 4]
         """
         if self._indices is None:
@@ -344,7 +396,8 @@ class BlockShuffling(SamplingStrategy):
         block_size : int, default=8
             Size of blocks for shuffling. Must be positive.
         indices : array-like, optional
-            Subset of indices to sample from.
+            Subset of indices to sample from. Indices will be automatically
+            sorted to ensure optimal I/O performance.
         drop_last : bool, default=False
             Whether to drop the last incomplete block.
             
@@ -353,11 +406,10 @@ class BlockShuffling(SamplingStrategy):
         ValueError
             If block_size is not positive.
         """
-        super().__init__()
+        super().__init__(indices=indices)
         if block_size <= 0:
             raise ValueError("block_size must be positive")
         self._shuffle_before_yield = True
-        self._indices = indices
         self.block_size = block_size
         self.drop_last = drop_last
 
@@ -540,7 +592,7 @@ class BlockWeightedSampling(SamplingStrategy):
     
     >>> # Custom weights favoring certain indices
     >>> weights = [0.1, 0.1, 0.4, 0.4]  # Favor indices 2 and 3
-    >>> strategy = BlockWeightedSampling(weights=weights, total_size=8, seed=42)
+    >>> strategy = BlockWeightedSampling(weights=weights, total_size=8)
     >>> indices = strategy.get_indices(range(4), seed=42)
     >>> len(indices)
     8
@@ -573,7 +625,8 @@ class BlockWeightedSampling(SamplingStrategy):
         block_size : int, default=8
             Size of blocks for shuffling. Must be positive.
         indices : array-like, optional
-            Subset of indices to sample from.
+            Subset of indices to sample from. Indices will be automatically
+            sorted to ensure optimal I/O performance.
         weights : array-like, optional
             Sampling weights. Will be normalized automatically.
         total_size : int, optional
@@ -589,11 +642,10 @@ class BlockWeightedSampling(SamplingStrategy):
             If block_size is not positive, weights are invalid, or
             sampling_size is missing when replace=False.
         """
-        super().__init__()
+        super().__init__(indices=indices)
         if block_size <= 0:
             raise ValueError("block_size must be positive")
         self._shuffle_before_yield = True
-        self._indices = indices
         self.block_size = block_size
         if weights is not None:
             weights = np.asarray(weights)
@@ -704,9 +756,29 @@ class BlockWeightedSampling(SamplingStrategy):
         >>> len(indices)
         6
         """
+        # Handle weights validation - must match either data_collection or indices
+        working_weights = None
         if self.weights is not None:
-            if len(self.weights) != len(data_collection):
-                raise ValueError("weights must have the same length as data_collection")
+            if self._indices is not None:
+                # When both weights and indices are provided, weights should match indices length
+                if len(self.weights) == len(self._indices):
+                    # Weights already match indices - use directly
+                    working_weights = self.weights / self.weights.sum()
+                elif len(self.weights) == len(data_collection):
+                    # Full weights provided - extract subset for indices
+                    subset_weights = self.weights[self._indices]
+                    working_weights = subset_weights / subset_weights.sum()
+                else:
+                    raise ValueError(
+                        f"weights length ({len(self.weights)}) must match either "
+                        f"data_collection length ({len(data_collection)}) or "
+                        f"indices length ({len(self._indices)})"
+                    )
+            else:
+                # No indices - weights must match data_collection
+                if len(self.weights) != len(data_collection):
+                    raise ValueError("weights must have the same length as data_collection")
+                working_weights = self.weights / self.weights.sum()
 
         if self._indices is None:
             _indices = np.arange(len(data_collection))
@@ -720,7 +792,7 @@ class BlockWeightedSampling(SamplingStrategy):
                 size = self.total_size
             else:
                 size = len(_indices)
-            indices = rng_obj.choice(_indices, size=size, replace=True, p=self.weights)
+            indices = rng_obj.choice(_indices, size=size, replace=True, p=working_weights)
         else:
             # Sample without replacement until we have total_size
             sampled = 0
@@ -728,7 +800,7 @@ class BlockWeightedSampling(SamplingStrategy):
             while sampled < self.total_size:
                 remaining = self.total_size - sampled
                 current_size = min(self.sampling_size, remaining)
-                new_indices = rng_obj.choice(_indices, size=current_size, replace=False, p=self.weights)
+                new_indices = rng_obj.choice(_indices, size=current_size, replace=False, p=working_weights)
                 indices_list.append(new_indices)
                 sampled += len(new_indices)
             indices = np.concatenate(indices_list)
@@ -878,40 +950,54 @@ class ClassBalancedSampling(BlockWeightedSampling):
         """
         Compute balanced weights for each sample based on inverse class frequency.
         
-        Computes weights that are inversely proportional to class frequency,
-        ensuring that all classes have equal sampling probability regardless
-        of their representation in the original dataset.
+        Computes weights that are inversely proportional to class frequency
+        in the FULL dataset (self.labels), ensuring that global class importance
+        is preserved even when sampling from a subset via indices.
+        
+        When indices are provided to ClassBalancedSampling, the weights for
+        all samples are computed from the full label array. BlockWeightedSampling
+        (parent class) then subsets and renormalizes these weights to create
+        a probability distribution over the subset indices.
+        
+        This means: if the full dataset is 90% class A and 10% class B, 
+        class B samples will have ~9x higher weight even when sampling from
+        a subset that happens to be 50% A and 50% B.
         
         Returns
         -------
         numpy.ndarray
-            Normalized weights for each sample. Samples from less frequent
-            classes receive higher weights.
+            Weights for ALL samples in self.labels (length = len(self.labels)).
+            The parent class handles subsetting to indices.
             
-        Examples
-        --------
-        >>> labels = np.array([0, 0, 1, 2, 2, 2])
-        >>> strategy = ClassBalancedSampling(labels)
-        >>> weights = strategy._compute_class_weights()
-        >>> # Class 0: 2 samples -> weight 1/2 = 0.5 per sample
-        >>> # Class 1: 1 sample  -> weight 1/1 = 1.0 per sample  
-        >>> # Class 2: 3 samples -> weight 1/3 ≈ 0.33 per sample
-        >>> weights.round(3)
-        array([0.5, 0.5, 1.0, 0.333, 0.333, 0.333])
-        
         Notes
         -----
+        This method is called internally during ``__init__`` to compute
+        weights before they are passed to the parent class.
+        
         The weights are not normalized to sum to 1.0, as this normalization
         is handled by the parent class :class:`BlockWeightedSampling`.
+        
+        Example computation for labels ``[0, 0, 1, 2, 2, 2]``:
+        
+        - Class 0: 2 samples -> weight 1/2 = 0.5 per sample
+        - Class 1: 1 sample  -> weight 1/1 = 1.0 per sample  
+        - Class 2: 3 samples -> weight 1/3 ≈ 0.33 per sample
+        
+        Result: ``array([0.5, 0.5, 1.0, 0.333, 0.333, 0.333])``
         """
-        unique_classes, class_counts = np.unique(self.labels, return_counts=True)
+        # Always compute on FULL labels to preserve global class importance
+        # The parent class (BlockWeightedSampling) will handle subsetting
+        # to indices and renormalization
+        working_labels = self.labels
+        
+        unique_classes, class_counts = np.unique(working_labels, return_counts=True)
         
         # Compute inverse frequency weights
         class_weights = 1.0 / class_counts
         
         # Create sample weights by mapping class weights to each sample
-        weights = np.zeros(len(self.labels))
+        weights = np.zeros(len(working_labels))
         for cls, weight in zip(unique_classes, class_weights):
-            weights[self.labels == cls] = weight
+            weights[working_labels == cls] = weight
         
         return weights

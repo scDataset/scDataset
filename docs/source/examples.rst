@@ -44,6 +44,177 @@ Working with AnnData
         # Your model training code here
         break
 
+Working with AnnCollection
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+``AnnCollection`` from ``anndata.experimental`` allows you to lazily concatenate multiple AnnData 
+objects without loading all data into memory. This is particularly useful for large-scale 
+single-cell studies spanning multiple files (e.g., different patients, batches, or plates).
+
+**Basic AnnCollection Setup:**
+
+.. code-block:: python
+
+    import anndata as ad
+    from anndata.experimental import AnnCollection
+    import numpy as np
+    import scipy.sparse as sp
+    from functools import partial
+    from scdataset import scDataset, BlockShuffling, MultiIndexable
+    from torch.utils.data import DataLoader
+
+    # Load multiple AnnData files (backed mode for memory efficiency)
+    file_paths = [
+        "plate_1.h5ad",
+        "plate_2.h5ad", 
+        "plate_3.h5ad"
+    ]
+    
+    adatas = [ad.read_h5ad(f, backed='r') for f in file_paths]
+    
+    # Create AnnCollection for lazy concatenation
+    collection = AnnCollection(adatas)
+    
+    print(f"Total cells: {len(collection)}")
+    print(f"Number of genes: {collection.shape[1]}")
+
+**Complete Pipeline with AnnCollection:**
+
+.. code-block:: python
+
+    import torch
+    
+    def fetch_transform_adata(batch, columns=None):
+        """
+        Transform AnnData batch to MultiIndexable.
+        
+        This function handles backed AnnData (lazy loading) by materializing
+        the data into memory and converting sparse matrices to dense.
+        
+        Parameters
+        ----------
+        batch : AnnData
+            The fetched AnnData slice from AnnCollection
+        columns : list of str, optional
+            Observation columns to include in the output
+            
+        Returns
+        -------
+        MultiIndexable
+            Contains 'X' (expression matrix) and any requested columns
+        """
+        # Materialize backed data into memory
+        batch = batch.to_memory()
+        
+        # Get expression matrix
+        X = batch.X
+        if sp.issparse(X):
+            X = X.toarray()
+        
+        # Build output dictionary
+        data_dict = {'X': X}
+        if columns is not None:
+            for col in columns:
+                data_dict[col] = batch.obs[col].values
+        
+        return MultiIndexable(data_dict)
+    
+    def to_tensor_batch(batch):
+        """Convert batch to PyTorch tensors with normalization."""
+        X = torch.from_numpy(batch['X']).float()
+        
+        # Log normalize
+        X = torch.log1p(X)
+        
+        # Z-score normalize per gene
+        X = (X - X.mean(dim=0)) / (X.std(dim=0) + 1e-8)
+        
+        # Convert plate labels to integers
+        plate = batch['plate']
+        plate_to_idx = {'plate_1': 0, 'plate_2': 1, 'plate_3': 2}
+        y = torch.tensor([plate_to_idx[p] for p in plate]).long()
+        
+        return X, y
+    
+    # Create dataset with transforms
+    dataset = scDataset(
+        collection,
+        strategy=BlockShuffling(block_size=8),
+        batch_size=64,
+        fetch_factor=16,
+        fetch_transform=partial(fetch_transform_adata, columns=['plate']),
+        batch_transform=to_tensor_batch
+    )
+    
+    # Create optimized DataLoader
+    loader = DataLoader(
+        dataset,
+        batch_size=None,        # scDataset handles batching
+        num_workers=4,
+        prefetch_factor=17,     # fetch_factor + 1
+        pin_memory=True         # For GPU training
+    )
+    
+    # Training loop
+    for X, y in loader:
+        # X: (64, n_genes) normalized tensor
+        # y: (64,) plate labels
+        print(f"Batch X: {X.shape}, y: {y.shape}")
+        break
+
+**Train/Validation Split with AnnCollection:**
+
+.. code-block:: python
+
+    from sklearn.model_selection import train_test_split
+    
+    # Get total number of cells
+    n_cells = len(collection)
+    indices = np.arange(n_cells)
+    
+    # Split indices
+    train_idx, val_idx = train_test_split(
+        indices, 
+        test_size=0.2, 
+        random_state=42
+    )
+    
+    # Common transform function
+    fetch_fn = partial(fetch_transform_adata, columns=['cell_type', 'plate'])
+    
+    # Training dataset with shuffling
+    train_dataset = scDataset(
+        collection,
+        BlockShuffling(indices=train_idx, block_size=8),
+        batch_size=64,
+        fetch_factor=16,
+        fetch_transform=fetch_fn
+    )
+    
+    # Validation dataset with streaming (deterministic)
+    val_dataset = scDataset(
+        collection,
+        Streaming(indices=val_idx),
+        batch_size=64,
+        fetch_factor=16,
+        fetch_transform=fetch_fn
+    )
+    
+    train_loader = DataLoader(train_dataset, batch_size=None, num_workers=4)
+    val_loader = DataLoader(val_dataset, batch_size=None, num_workers=4)
+
+**Memory-Efficient Tips for AnnCollection:**
+
+1. **Use backed mode**: Always load AnnData files with ``backed='r'`` to avoid loading entire files into memory.
+
+2. **Use fetch_transform**: Materialize data in ``fetch_transform`` rather than ``batch_transform`` to benefit from larger fetches.
+
+3. **Higher fetch_factor**: For backed data, use ``fetch_factor=16`` or higher to amortize I/O overhead.
+
+4. **Block shuffling**: Use ``BlockShuffling`` with appropriate block size to balance randomness vs I/O efficiency.
+
+5. **Common genes**: Use ``join_vars='inner'`` when creating ``AnnCollection`` to ensure all files have the same features.
+
 Class-Balanced Training
 ~~~~~~~~~~~~~~~~~~~~~~~
 

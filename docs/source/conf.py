@@ -15,8 +15,8 @@ sys.path.insert(0, os.path.abspath('../../src'))
 project = 'scDataset'
 copyright = "2025, Davide D'Ascenzo"
 author = "Davide D'Ascenzo"
-version = '0.2.0'
-release = '0.2.0'
+version = '0.2.1'
+release = '0.2.1'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -29,8 +29,14 @@ extensions = [
     'sphinx.ext.viewcode',
     'sphinx.ext.intersphinx',
     'sphinx.ext.githubpages',
+    'sphinx.ext.doctest',  # For testing code blocks in documentation
     'sphinx_sitemap',
+    'nbsphinx',  # For including Jupyter notebooks in documentation
 ]
+
+# nbsphinx settings
+nbsphinx_execute = 'never'  # Don't execute notebooks during build
+nbsphinx_allow_errors = True  # Allow notebooks with errors to be included
 
 # Generate autosummary pages
 autosummary_generate = True

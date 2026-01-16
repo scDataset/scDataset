@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "scDataset"
-version = "0.2.0"
+version = "0.2.1"
 description = "Scalable Data Loading for Deep Learning on Large-Scale Single-Cell Omics"
 authors = [
     { name = "Davide D'Ascenzo", email = "davide.dascenzo.work@gmail.com" }
@@ -22,6 +22,46 @@ classifiers = [
     "Operating System :: OS Independent"
 ]
 
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+]
+docs = [
+    "sphinx>=5.0.0",
+    "sphinx-book-theme>=1.0.0",
+    "sphinx-sitemap>=2.5.0",
+    "nbsphinx>=0.9.0",
+    "pandoc>=2.0.0",
+]
+auto = [
+    "psutil>=5.0.0",
+]
+
 [project.urls]
 Homepage = "https://github.com/Kidara/scDataset"
 Issues = "https://github.com/Kidara/scDataset/issues"
+Documentation = "https://scdataset.github.io/"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
+filterwarnings = [
+    "ignore::DeprecationWarning",
+]
+# Enable doctest for module docstrings
+doctest_optionflags = ["ELLIPSIS", "NORMALIZE_WHITESPACE"]
+
+[tool.coverage.run]
+source = ["src/scdataset"]
+branch = true
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+]

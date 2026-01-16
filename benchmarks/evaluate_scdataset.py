@@ -5,202 +5,29 @@ BIONEMO_DATA_PATH = "/path-to-data/2025-02-25/scdl_out"
 import os
 os.environ["HF_HOME"] = "/path-to-data/.cache/huggingface"
 
-import time
-import pandas as pd
-import numpy as np
-import anndata as ad
 import gc
-import torch
-import yaml
 import argparse
+import anndata as ad
+import pandas as pd
+from functools import partial
 from torch.utils.data import DataLoader
 from anndata.experimental import AnnLoader, AnnCollection
-from tqdm.auto import tqdm
 from src.scdataset.scdataset import scDataset
-from src.scdataset.strategy import Streaming, BlockShuffling
-from scipy import stats
+from src.scdataset.strategy import Streaming, BlockShuffling, BlockWeightedSampling
 from datasets import load_dataset
-from typing import Union, Sequence
 from bionemo.scdl.io.single_cell_memmap_dataset import SingleCellMemMapDataset
 from bionemo.scdl.util.torch_dataloader_utils import collate_sparse_matrix_batch
 
-def fetch_transform_hf(batch, num_genes=62713):
-    if isinstance(batch, dict):
-        # Extract numpy arrays from batch
-        batch_genes = batch['genes']  # List of numpy arrays
-        batch_expr = batch['expressions']  # List of numpy arrays
-    elif isinstance(batch, list):
-        # Extract numpy arrays from batch
-        batch_genes = [item['genes'] for item in batch]
-        batch_expr = [item['expressions'] for item in batch]
-    else:
-        raise ValueError("Batch must be a dictionary or a list of dictionaries.")
+# Import utilities from utils module
+from utils import (
+    fetch_transform_hf,
+    fetch_transform_adata,
+    fetch_callback_bionemo,
+    load_config,
+    evaluate_loader,
+    save_results_to_csv,
+)
 
-    batch_size = len(batch_genes)
-    
-    # Generate batch indices using numpy
-    lengths = [len(arr) for arr in batch_genes]
-    batch_indices_np = np.concatenate(
-        [np.full(l, i, dtype=np.int64) for i, l in enumerate(lengths)]
-    )
-    
-    # Concatenate all genes and expressions in numpy first
-    gene_indices_np = np.concatenate(batch_genes)
-    values_np = np.concatenate(batch_expr)
-    
-    # Single conversion to tensors
-    batch_indices = torch.from_numpy(batch_indices_np)
-    gene_indices = torch.from_numpy(gene_indices_np)
-    values = torch.from_numpy(values_np).float()
-    
-    # Create combined indices tensor
-    indices = torch.stack([batch_indices, gene_indices], dim=0)
-    
-    # Create dense tensor in one assignment
-    dense_tensor = torch.zeros(batch_size, num_genes, dtype=values.dtype)
-    dense_tensor[indices[0], indices[1]] = values
-    
-    return dense_tensor
-
-def fetch_transform_adata(batch):
-    return batch.to_adata()
-
-def fetch_callback_bionemo(data_collection, idx: Union[int, slice, Sequence[int], np.ndarray, torch.Tensor]) -> torch.Tensor:
-    """Fetch callback for bionemo dataset when used with scDataset."""
-    if isinstance(idx, int):
-        # Single index
-        return collate_sparse_matrix_batch([data_collection.__getitem__(idx)]).to_dense()
-    elif isinstance(idx, slice):
-        # Slice: convert to a list of indices
-        indices = list(range(*idx.indices(len(data_collection))))
-        batch_tensors = [data_collection.__getitem__(i) for i in indices]
-        return collate_sparse_matrix_batch(batch_tensors).to_dense()
-    elif isinstance(idx, (list, np.ndarray, torch.Tensor)):
-        # Batch indexing
-        if isinstance(idx, torch.Tensor):
-            idx = idx.tolist()
-        batch_tensors = [data_collection.__getitem__(int(i)) for i in idx]
-        return collate_sparse_matrix_batch(batch_tensors).to_dense()
-    else:
-        raise TypeError(f"Unsupported index type: {type(idx)}")
-
-def load_config(config_path):
-    """Load configuration from YAML file."""
-    try:
-        with open(config_path, 'r') as file:
-            config = yaml.safe_load(file)
-        return config
-    except Exception as e:
-        print(f"Error loading config file: {e}")
-        print("Using default configuration...")
-        return {
-            "results_path": "/path-to-data/data_loader_performance.csv",
-            "batch_sizes": [16, 32, 64, 128, 256],
-            "block_sizes": [1, 2, 4, 8, 16, 32, 64, 128],
-            "fetch_factors": [1, 2, 4, 8, 16],
-            "num_workers_options": [0, 1, 2, 4, 8, 16],
-            "collection_type": "anncollection",
-            "test_modes": "all",  # Options: "all", "random", "stream"
-        }
-
-def evaluate_loader(loader, test_time_seconds=120, description="Testing loader"):
-    """Evaluate the performance of a data loader for a specified duration."""
-    gc.collect()
-    
-    total_samples = 0
-    batch_plates = []
-
-    pbar = tqdm(desc=f"{description} (for {test_time_seconds}s)")
-    
-    # Initialize warm-up timer
-    warm_up_seconds = 30
-    warm_up_start = time.perf_counter()
-    warm_up_end = warm_up_start + warm_up_seconds
-    is_warming_up = True
-    
-    for i, batch in enumerate(loader):
-        # Handle different batch structures
-        if hasattr(batch, "X"):
-            # AnnCollection batch
-            batch_size = batch.X.shape[0]
-            if not is_warming_up:
-                # Collect plate info for entropy calculation
-                batch_plates.append(batch.obs['plate'].values)
-        else:
-            batch_size = batch.shape[0] if hasattr(batch, "shape") else len(batch)
-                
-        current_time = time.perf_counter()
-        
-        if is_warming_up:
-            # We're in warm-up period
-            if current_time >= warm_up_end:
-                # Warm-up complete, start the actual timing
-                is_warming_up = False
-                total_samples = 0
-                start_time = time.perf_counter()
-                end_time = start_time + test_time_seconds
-                pbar.set_description(f"{description} (warming up complete, testing for {test_time_seconds}s)")
-            else:
-                pbar.set_description(f"{description} (warming up: {current_time - warm_up_start:.1f}/{warm_up_seconds}s)")
-                pbar.update(1)
-                continue
-        
-        # Now we're past the warm-up period
-        total_samples += batch_size
-        
-        elapsed = current_time - start_time
-        pbar.set_postfix(samples=total_samples, elapsed=f"{elapsed:.2f}s")
-        pbar.update(1)
-
-        if current_time >= end_time:
-            break
-
-    pbar.close()
-    
-    # Calculate the load time metrics
-    elapsed = time.perf_counter() - start_time
-    avg_time_per_sample = elapsed / total_samples if total_samples > 0 else 0
-    samples_per_second = total_samples / elapsed if elapsed > 0 else 0
-    
-    # Calculate entropy measures (if plate data is available)
-    avg_batch_entropy = 0
-    std_batch_entropy = 0
-    
-    if batch_plates:
-        batch_entropies = []
-        # Calculate entropy for each batch
-        for plates in batch_plates:
-            if len(plates) > 1:
-                unique_plates, counts = np.unique(plates, return_counts=True)
-                probabilities = counts / len(plates)
-                batch_entropy = stats.entropy(probabilities, base=2)
-                batch_entropies.append(batch_entropy)
-        
-        # Calculate average and standard deviation of entropy across all batches
-        if batch_entropies:
-            avg_batch_entropy = np.mean(batch_entropies)
-            std_batch_entropy = np.std(batch_entropies)
-    
-    return {
-        "samples_tested": total_samples,
-        "elapsed": elapsed,
-        "avg_time_per_sample": avg_time_per_sample,
-        "samples_per_second": samples_per_second,
-        "avg_batch_entropy": avg_batch_entropy,
-        "std_batch_entropy": std_batch_entropy,
-    }
-
-def save_results_to_csv(results, filepath=None):
-    """Save or update results to CSV file."""
-    
-    df = pd.DataFrame(results)
-    
-    # Save to CSV
-    if filepath is not None:
-        df.to_csv(filepath, index=False)
-        print(f"Updated results saved to {filepath}")
-    
-    return df
 
 def run_evaluations(config_path):
     # Load configuration
@@ -469,7 +296,8 @@ def run_evaluations(config_path):
                         if collection_type == "huggingface":
                             fetch_transform = fetch_transform_hf
                         elif collection_type == "anncollection":
-                            fetch_transform = fetch_transform_adata
+                            # Use new fetch_transform_adata with plate column
+                            fetch_transform = partial(fetch_transform_adata, columns=['plate'])
                         elif collection_type == "bionemo":
                             fetch_transform = None
                         
@@ -502,6 +330,69 @@ def run_evaluations(config_path):
                         results.append({
                             "mode": "random",
                             "loader": "scDataset",
+                            "strategy": "BlockShuffling",
+                            "collection_type": collection_type,
+                            "batch_size": batch_size,
+                            "block_size": block_size,
+                            "fetch_factor": fetch_factor,
+                            "num_workers": num_workers,
+                            "prefetch_factor": prefetch_factor,
+                            **result
+                        })
+                        
+                        # Save results after each experiment
+                        save_results_to_csv(results, results_path)
+                        
+                        del dataset, loader
+                        gc.collect()
+    
+    # Test scDataset with BlockWeightedSampling strategy (new)
+    if test_modes in ["all", "weighted"]:
+        print("\nTesting scDataset with BlockWeightedSampling strategy...")
+        for batch_size in batch_sizes:
+            for block_size in block_sizes:
+                for fetch_factor in fetch_factors:
+                    for num_workers in num_workers_options:
+                        prefetch_factor = fetch_factor + 1 if num_workers > 0 else None
+                        
+                        # Choose appropriate fetch transform based on collection type
+                        if collection_type == "huggingface":
+                            fetch_transform = fetch_transform_hf
+                        elif collection_type == "anncollection":
+                            fetch_transform = partial(fetch_transform_adata, columns=['plate'])
+                        elif collection_type == "bionemo":
+                            fetch_transform = None
+                        
+                        extra_params = {}
+                        if collection_type == "bionemo":
+                            extra_params["fetch_callback"] = fetch_callback_bionemo
+                        
+                        # Create BlockWeightedSampling strategy (uniform weights)
+                        strategy = BlockWeightedSampling(block_size=block_size)
+                        
+                        dataset = scDataset(
+                            data_collection=data_collection,
+                            strategy=strategy,
+                            batch_size=batch_size,
+                            fetch_factor=fetch_factor,
+                            fetch_transform=fetch_transform,
+                            **extra_params
+                        )
+                        
+                        loader = DataLoader(
+                            dataset,
+                            batch_size=None,
+                            num_workers=num_workers,
+                            prefetch_factor=prefetch_factor,
+                        )
+                        
+                        desc = f"scDataset (BlockWeightedSampling) - batch={batch_size}, block={block_size}, ff={fetch_factor}, w={num_workers}"
+                        result = evaluate_loader(loader, description=desc)
+                        
+                        results.append({
+                            "mode": "weighted",
+                            "loader": "scDataset",
+                            "strategy": "BlockWeightedSampling",
                             "collection_type": collection_type,
                             "batch_size": batch_size,
                             "block_size": block_size,
@@ -529,7 +420,7 @@ def run_evaluations(config_path):
                     if collection_type == "huggingface":
                         fetch_transform = fetch_transform_hf
                     elif collection_type == "anncollection":
-                        fetch_transform = fetch_transform_adata
+                        fetch_transform = partial(fetch_transform_adata, columns=['plate'])
                     elif collection_type == "bionemo":
                         fetch_transform = None
                     
@@ -562,6 +453,7 @@ def run_evaluations(config_path):
                     results.append({
                         "mode": "stream",
                         "loader": "scDataset",
+                        "strategy": "Streaming",
                         "collection_type": collection_type,
                         "batch_size": batch_size,
                         "block_size": None,  # Not applicable for streaming

@@ -27,5 +27,7 @@
    
       ~MultiIndexable.count
       ~MultiIndexable.names
+      ~MultiIndexable.unstructured
+      ~MultiIndexable.unstructured_keys
    
    

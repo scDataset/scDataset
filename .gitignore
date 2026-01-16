@@ -174,3 +174,8 @@ cython_debug/
 .pypirc
 
 no_commit/*
+
+FROM_USER.md
+TO_USER.md
+PROJECT.md
+.github/skills

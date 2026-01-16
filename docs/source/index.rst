@@ -9,6 +9,10 @@ scDataset Documentation
    :target: https://opensource.org/licenses/MIT
    :alt: License: MIT
 
+.. image:: https://img.shields.io/badge/docs-scdataset.readthedocs.io-blue.svg
+   :target: https://scdataset.readthedocs.io/
+   :alt: Documentation
+
 .. image:: https://img.shields.io/badge/arXiv-2506.01883-b31b1b.svg
    :target: https://arxiv.org/abs/2506.01883
    :alt: arXiv
@@ -74,7 +78,15 @@ Basic usage:
    installation
    quickstart
    examples
+   transforms
+   ddp
    scdataset
+   
+.. toctree::
+   :maxdepth: 2
+   :caption: Tutorials:
+   
+   notebooks/tahoe_tutorial
    
 .. toctree::
    :maxdepth: 1

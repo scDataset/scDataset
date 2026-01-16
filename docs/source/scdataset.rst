@@ -25,6 +25,18 @@ Multi-Modal Data Support
 
    MultiIndexable
 
+Transform Functions
+-------------------
+
+.. currentmodule:: scdataset.transforms
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   fetch_transform_adata
+   fetch_transform_hf
+
 Sampling Strategies
 -------------------
 

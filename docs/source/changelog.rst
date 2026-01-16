@@ -1,6 +1,98 @@
 Changelog
 =========
 
+[0.2.1] - 2025-01-XX
+---------------------
+
+**Bug Fixes**
+~~~~~~~~~~~~~
+
+* **Fixed unsorted indices issue**: Sampling strategies now automatically sort indices
+  to ensure optimal I/O performance. When unsorted indices are provided, a warning
+  is issued and indices are sorted automatically. This fix addresses issues with
+  disk access patterns that could occur when users passed indices in arbitrary order.
+  (Thanks to `@deto <https://github.com/deto>`_ for reporting this issue)
+
+* **Fixed ClassBalancedSampling with indices**: Class-balanced sampling now correctly
+  handles subset indices by computing weights only for the specified subset.
+  Previously, when ``indices`` was provided, weights could mismatch the subset size.
+
+* **Fixed BlockWeightedSampling weights handling with indices**: When both ``weights``
+  and ``indices`` are provided, weights are now properly aligned with the subset.
+  Supports both full weights (matching data_collection) that get subsetted, and
+  pre-subsetted weights (matching indices length).
+
+**Added**
+~~~~~~~~~
+
+* **Auto-configuration module** (``auto_config.py``):
+  
+  * ``suggest_parameters()`` - Automatically suggest optimal ``num_workers``, 
+    ``fetch_factor``, and ``block_size`` based on data and system resources
+  * ``estimate_sample_size()`` - Helper function to estimate memory per sample
+  * Uses ``psutil`` (optional dependency) for accurate memory detection
+
+* **Unstructured data support in MultiIndexable**:
+  
+  * New ``unstructured`` parameter to store non-indexable metadata
+  * Useful for storing gene names, dataset info, or other metadata
+  * Unstructured data is preserved through subsetting operations
+  * New ``unstructured_keys`` property to list available keys
+
+* **Jupyter notebook integration in documentation**:
+  
+  * Added ``nbsphinx`` extension for including Jupyter notebooks in docs
+  * Tutorial notebook (``tahoe_tutorial.ipynb``) now available in docs
+  * Notebooks are rendered without execution for faster builds
+
+* **Doctest integration for documentation examples**:
+  
+  * Added ``sphinx.ext.doctest`` extension for testing code blocks in docs
+  * New ``tests/test_docstrings.py`` for testing module docstrings
+  * Documentation code examples are now automatically tested
+
+* **Comprehensive test suite** (155 tests, 90% coverage):
+  
+  * Tests for all strategies, MultiIndexable, scDataset, and auto_config
+  * Tests for dict-like interface (items, keys, values) in MultiIndexable
+  * Tests for error handling and edge cases
+  * Tests for doc code snippets from quickstart guide
+  * pytest configuration in ``pyproject.toml``
+
+* **Documentation improvements**:
+  
+  * New transforms guide (``transforms.rst``) documenting ``fetch_transform``,
+    ``batch_transform``, ``fetch_callback``, and ``batch_callback``
+  * Comprehensive AnnCollection example in examples
+  * Documentation badge added to README and docs
+  * Updated benchmarks README with utility documentation
+
+**Changed**
+~~~~~~~~~~~
+
+* **DRY refactor for index sorting**: Moved ``_validate_and_sort_indices()`` method
+  to ``SamplingStrategy`` base class, removing duplicate code from ``Streaming``,
+  ``BlockShuffling``, and ``BlockWeightedSampling`` subclasses.
+
+* **Extracted benchmark utilities to ``utils.py``**:
+  
+  * ``fetch_transform_hf()`` - Transform for HuggingFace sparse data
+  * ``fetch_transform_adata()`` - Transform for AnnData/AnnCollection (returns MultiIndexable)
+  * ``fetch_callback_bionemo()`` - Callback for BioNeMo sparse matrices
+  * ``evaluate_loader()`` - Benchmark loader throughput
+  * ``save_results_to_csv()`` - Save benchmark results
+
+* **Added BlockWeightedSampling to benchmarks**: Now evaluates all sampling strategies
+
+* **Version bumped to 0.2.1** in ``__init__.py`` and ``pyproject.toml``
+
+**Dependencies**
+~~~~~~~~~~~~~~~~
+
+* Added optional ``[auto]`` extras for auto-configuration: ``pip install scDataset[auto]``
+* Added optional ``[docs]`` extras for documentation building: ``pip install scDataset[docs]``
+* Added ``[dev]`` extras for development: ``pip install scDataset[dev]``
+
 [0.2.0] - 2025-08-28
 ---------------------
 

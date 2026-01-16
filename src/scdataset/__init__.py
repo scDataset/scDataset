@@ -99,6 +99,7 @@ Key Features
 * **Flexible Sampling**: Multiple sampling strategies for different use cases  
 * **PyTorch Compatible**: Works seamlessly with PyTorch DataLoader and multiprocessing
 * **Customizable**: Support for custom fetch/batch callbacks and transforms
+* **Auto-configuration**: Automatic parameter suggestion based on system resources
 
 Performance Tips
 ----------------
@@ -106,6 +107,7 @@ Performance Tips
 * Use ``block_size > 1`` to read data in contiguous chunks
 * Use ``fetch_factor > 1`` to fetch multiple batches at once for better I/O
 * Use ``num_workers > 0`` in DataLoader for parallel data loading
+* Use ``suggest_parameters()`` to get optimal settings for your system
 """
 # See Also
 # --------
@@ -121,8 +123,10 @@ from .strategy import (
     ClassBalancedSampling
 )
 from .multiindexable import MultiIndexable
+from .auto_config import suggest_parameters, estimate_sample_size
+from .transforms import fetch_transform_adata, fetch_transform_hf
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 
 __all__ = [
     "scDataset",
@@ -132,4 +136,8 @@ __all__ = [
     "BlockWeightedSampling",
     "ClassBalancedSampling",
     "MultiIndexable",
+    "suggest_parameters",
+    "estimate_sample_size",
+    "fetch_transform_adata",
+    "fetch_transform_hf",
 ]

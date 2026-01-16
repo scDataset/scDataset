@@ -13,6 +13,7 @@
    .. autosummary::
    
       ~scDataset.__init__
+      ~scDataset.set_epoch
    
    
 
