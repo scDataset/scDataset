@@ -7,13 +7,6 @@ Changelog
 **Major Features**
 ~~~~~~~~~~~~~~~~~~
 
-* **Automatic epoch handling**: The dataset now automatically increments an internal
-  epoch counter each time it is iterated. This eliminates the need for manual
-  epoch tracking while ensuring different shuffling each epoch.
-  
-  * New ``seed`` parameter in constructor for setting base seed for reproducibility
-  * Auto-incrementing epoch combined with seed ensures deterministic but varying shuffling
-
 * **Native DDP support**: Full Distributed Data Parallel support with round-robin
   fetch distribution across ranks. Auto-detects ``torch.distributed`` settings.
   
@@ -53,6 +46,13 @@ Changelog
   * ``suggest_parameters()`` - Automatically suggest optimal ``num_workers``, 
     ``fetch_factor``, and ``block_size`` based on data and system resources
   * ``estimate_sample_size()`` - Helper function to estimate memory per sample
+    with accurate deep size estimation for complex data structures
+  * Both functions accept ``fetch_transform``, ``batch_transform``, 
+    ``fetch_callback``, and ``batch_callback`` parameters to match scDataset
+    configuration for accurate memory estimation
+  * New ``_deep_sizeof()`` function for recursive memory estimation supporting:
+    NumPy arrays, scipy sparse matrices, PyTorch tensors, pandas DataFrames/Series,
+    AnnData objects (X, obs, obsm, layers), MultiIndexable, and nested structures
   * Uses ``psutil`` (optional dependency) for accurate memory detection
 
 * **Unstructured data support in MultiIndexable**:
@@ -74,13 +74,12 @@ Changelog
   * New ``tests/test_docstrings.py`` for testing module docstrings
   * Documentation code examples are now automatically tested
 
-* **Comprehensive test suite** (155 tests, 90% coverage):
+* **Comprehensive test suite**:
   
   * Tests for all strategies, MultiIndexable, scDataset, and auto_config
   * Tests for dict-like interface (items, keys, values) in MultiIndexable
   * Tests for error handling and edge cases
   * Tests for doc code snippets from quickstart guide
-  * pytest configuration in ``pyproject.toml``
 
 * **Documentation improvements**:
   
@@ -93,21 +92,7 @@ Changelog
 **Changed**
 ~~~~~~~~~~~
 
-* **DRY refactor for index sorting**: Moved ``_validate_and_sort_indices()`` method
-  to ``SamplingStrategy`` base class, removing duplicate code from ``Streaming``,
-  ``BlockShuffling``, and ``BlockWeightedSampling`` subclasses.
-
-* **Extracted benchmark utilities to ``utils.py``**:
-  
-  * ``fetch_transform_hf()`` - Transform for HuggingFace sparse data
-  * ``fetch_transform_adata()`` - Transform for AnnData/AnnCollection (returns MultiIndexable)
-  * ``fetch_callback_bionemo()`` - Callback for BioNeMo sparse matrices
-  * ``evaluate_loader()`` - Benchmark loader throughput
-  * ``save_results_to_csv()`` - Save benchmark results
-
 * **Added BlockWeightedSampling to benchmarks**: Now evaluates all sampling strategies
-
-* **Version bumped to 0.3.0** in ``__init__.py`` and ``pyproject.toml``
 
 **Dependencies**
 ~~~~~~~~~~~~~~~~

@@ -2,7 +2,7 @@
 scDataset: Efficient PyTorch Datasets for Single-Cell Data
 ==========================================================
 
-A PyTorch-compatible dataset library designed specifically for large-scale 
+A PyTorch-compatible dataset library designed specifically for large-scale
 single-cell data analysis. Provides flexible sampling strategies and efficient
 data loading patterns optimized for genomics and single-cell datasets.
 
@@ -17,7 +17,7 @@ Main Components
 
 **Sampling Strategies**
 
-* :class:`~scdataset.strategy.Streaming` - Sequential sampling without shuffling  
+* :class:`~scdataset.strategy.Streaming` - Sequential sampling without shuffling
 * :class:`~scdataset.strategy.BlockShuffling` - Block-based shuffling for locality
 * :class:`~scdataset.strategy.BlockWeightedSampling` - Weighted sampling with blocks
 * :class:`~scdataset.strategy.ClassBalancedSampling` - Automatic class balancing
@@ -32,14 +32,14 @@ Basic usage with streaming (sequential) sampling::
 
     # Create sample data
     data = np.random.randn(10000, 2000)  # 10k cells, 2k genes
-    
+
     # Create dataset with streaming strategy
     dataset = scDataset(data, Streaming(), batch_size=64)
-    
+
     # Use with PyTorch DataLoader
     from torch.utils.data import DataLoader
     loader = DataLoader(dataset, batch_size=None, num_workers=4)
-    
+
     for batch in loader:
         print(f"Batch shape: {batch.shape}")
         break
@@ -47,7 +47,7 @@ Basic usage with streaming (sequential) sampling::
 Block shuffling for better randomization while maintaining some locality::
 
     from scdataset import BlockShuffling
-    
+
     # Shuffle in blocks of 8 samples
     strategy = BlockShuffling(block_size=8)
     dataset = scDataset(data, strategy, batch_size=64)
@@ -56,7 +56,7 @@ Weighted sampling for handling imbalanced data::
 
     from scdataset import BlockWeightedSampling
     import numpy as np
-    
+
     # Sample with custom weights (e.g., higher weight for rare samples)
     weights = np.random.rand(len(data))
     strategy = BlockWeightedSampling(weights=weights, total_size=500, block_size=32)
@@ -65,11 +65,11 @@ Weighted sampling for handling imbalanced data::
 Class-balanced sampling for imbalanced datasets::
 
     from scdataset import ClassBalancedSampling
-    
+
     # Assume we have cell type labels
-    cell_types = np.random.choice(['T_cell', 'B_cell', 'NK_cell'], size=10000, 
+    cell_types = np.random.choice(['T_cell', 'B_cell', 'NK_cell'], size=10000,
                                  p=[0.7, 0.2, 0.1])  # Imbalanced
-    
+
     # Automatically balance classes
     strategy = ClassBalancedSampling(cell_types, total_size=5000)
     dataset = scDataset(data, strategy, batch_size=64)
@@ -77,17 +77,17 @@ Class-balanced sampling for imbalanced datasets::
 Multi-modal data with synchronized indexing::
 
     from scdataset import MultiIndexable
-    
+
     # Group multiple data modalities together
     multimodal = MultiIndexable(
-        genes=gene_expression_data,    # Shape: (n_cells, n_genes) 
+        genes=gene_expression_data,    # Shape: (n_cells, n_genes)
         proteins=protein_data,         # Shape: (n_cells, n_proteins)
         metadata=cell_metadata         # Shape: (n_cells, n_features)
     )
-    
+
     # Use with scDataset - all modalities indexed together
     dataset = scDataset(multimodal, Streaming(), batch_size=64)
-    
+
     for batch in dataset:
         genes = batch['genes']      # Genes for this batch
         proteins = batch['proteins'] # Corresponding proteins
@@ -96,7 +96,7 @@ Key Features
 ------------
 
 * **Memory Efficient**: Streams data without loading everything into memory
-* **Flexible Sampling**: Multiple sampling strategies for different use cases  
+* **Flexible Sampling**: Multiple sampling strategies for different use cases
 * **PyTorch Compatible**: Works seamlessly with PyTorch DataLoader and multiprocessing
 * **Customizable**: Support for custom fetch/batch callbacks and transforms
 * **Auto-configuration**: Automatic parameter suggestion based on system resources

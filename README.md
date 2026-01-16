@@ -2,8 +2,8 @@
 
 [![PyPI version](https://badge.fury.io/py/scDataset.svg)](https://pypi.org/project/scDataset/)
 [![PyPI Downloads](https://static.pepy.tech/personalized-badge/scdataset?period=total&units=INTERNATIONAL_SYSTEM&left_color=GREY&right_color=GREEN&left_text=downloads)](https://pepy.tech/projects/scdataset)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 [![codecov](https://codecov.io/gh/scDataset/scDataset/branch/main/graph/badge.svg)](https://codecov.io/gh/scDataset/scDataset)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 [![Documentation](https://img.shields.io/badge/docs-scdataset.github.io-blue.svg)](https://scdataset.github.io/)
 [![arXiv](https://img.shields.io/badge/arXiv-2506.01883-b31b1b.svg)](https://arxiv.org/abs/2506.01883)
 
@@ -100,7 +100,7 @@ dataset = scDataset(data, strategy, batch_size=64)
 # Custom weights (e.g., for imbalanced data)
 sample_weights = compute_weights(data)  # Your weight computation
 strategy = BlockWeightedSampling(
-    weights=sample_weights, 
+    weights=sample_weights,
     total_size=5000,
     block_size=16
 )
@@ -127,7 +127,7 @@ from scdataset import MultiIndexable, Streaming
 # Group multiple data modalities
 multi_data = MultiIndexable(
     genes=gene_expression_data,    # Shape: (n_cells, n_genes)
-    proteins=protein_data,         # Shape: (n_cells, n_proteins)  
+    proteins=protein_data,         # Shape: (n_cells, n_proteins)
     metadata=cell_metadata         # Shape: (n_cells, n_features)
 )
 
@@ -148,8 +148,8 @@ Configure `fetch_factor` to fetch multiple batches worth of data at once:
 ```python
 strategy = BlockShuffling(block_size=16)
 dataset = scDataset(
-    data, 
-    strategy, 
+    data,
+    strategy,
     batch_size=64,
     fetch_factor=8  # Fetch 8*64=512 samples at once
 )
@@ -169,25 +169,25 @@ Apply custom transformations at fetch or batch time using the new callback syste
 
 #### Transform Overview
 
-- **`fetch_callback(collection, indices)`**:  
-  Customizes how samples are fetched from the underlying data collection.  
-  Use this if your collection does not support batched indexing or requires special access logic.  
-  - **Input:** the data collection and an array of indices  
+- **`fetch_callback(collection, indices)`**:
+  Customizes how samples are fetched from the underlying data collection.
+  Use this if your collection does not support batched indexing or requires special access logic.
+  - **Input:** the data collection and an array of indices
   - **Output:** the fetched data
 
-- **`fetch_transform(fetched_data)`**:  
-  Transforms each fetched chunk (e.g., sparse-to-dense conversion, normalization).  
-  - **Input:** the fetched data  
+- **`fetch_transform(fetched_data)`**:
+  Transforms each fetched chunk (e.g., sparse-to-dense conversion, normalization).
+  - **Input:** the fetched data
   - **Output:** the transformed data
 
-- **`batch_callback(fetched_data, batch_indices)`**:  
+- **`batch_callback(fetched_data, batch_indices)`**:
   Selects or arranges a minibatch from the fetched/transformed data.
   - **Input:** the fetched/transformed data and a list of batch indices within the chunk
   - **Output:** the batch to yield
 
-- **`batch_transform(batch)`**:  
-  Applies final processing to each batch before yielding (e.g., collation, augmentation).  
-  - **Input:** the batch  
+- **`batch_transform(batch)`**:
+  Applies final processing to each batch before yielding (e.g., collation, augmentation).
+  - **Input:** the batch
   - **Output:** the processed batch
 
 ```python
@@ -263,8 +263,8 @@ for epoch in range(num_epochs):
     for batch in train_loader:
         # Training code here
         pass
-    
-    # Validation  
+
+    # Validation
     for batch in val_loader:
         # Validation code here
         pass

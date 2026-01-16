@@ -64,10 +64,12 @@ class scDataset(IterableDataset):
     world_size : int, optional
         Total number of processes for distributed training (DDP). If None,
         auto-detects from torch.distributed if initialized. Defaults to 1.
-    seed : int, default=42
+    seed : int or None, optional
         Base seed for reproducible shuffling. Combined with auto-incrementing
         epoch counter to produce different shuffling each epoch while ensuring
         reproducibility across runs with the same seed.
+        If None, a random seed is generated and shared across all DDP ranks
+        to ensure consistent shuffling while providing variety between runs.
 
     Attributes
     ----------
@@ -103,28 +105,28 @@ class scDataset(IterableDataset):
     >>> from scdataset import scDataset
     >>> from scdataset.strategy import Streaming
     >>> import numpy as np
-    
+
     >>> # Simple streaming dataset
     >>> data = np.random.randn(1000, 50)  # 1000 samples, 50 features
     >>> strategy = Streaming()
     >>> dataset = scDataset(data, strategy, batch_size=32)
     >>> len(dataset)  # Number of batches
     32
-    
+
     >>> # With custom transforms
     >>> def normalize_batch(batch):
     ...     return (batch - batch.mean()) / batch.std()
     >>> dataset = scDataset(
-    ...     data, strategy, batch_size=32, 
+    ...     data, strategy, batch_size=32,
     ...     batch_transform=normalize_batch
     ... )
-    
+
     >>> # Iterate through batches
     >>> for batch in dataset:  # doctest: +ELLIPSIS
     ...     print(batch.shape)
     ...     break
     (32, 50)
-    
+
     >>> # Distributed Data Parallel (DDP) usage
     >>> # In DDP training script:
     >>> # import torch.distributed as dist
@@ -150,7 +152,7 @@ class scDataset(IterableDataset):
     Data is fetched in chunks of size ``batch_size * fetch_factor`` and then
     divided into batches. This can improve I/O efficiency, especially for
     datasets where accessing non-contiguous indices is expensive.
-    
+
     **DDP Support**: When using Distributed Data Parallel, fetches are distributed
     across ranks in round-robin fashion for better load balancing. Each rank
     processes every ``world_size``-th fetch, ensuring no data duplication.
@@ -171,11 +173,11 @@ class scDataset(IterableDataset):
         batch_callback: Optional[Callable] = None,
         rank: Optional[int] = None,
         world_size: Optional[int] = None,
-        seed: int = 42
+        seed: Optional[int] = None,
     ):
         """
         Initialize the scDataset.
-        
+
         Parameters
         ----------
         data_collection : object
@@ -200,17 +202,19 @@ class scDataset(IterableDataset):
             Process rank for DDP. Auto-detected if None.
         world_size : int, optional
             Number of DDP processes. Auto-detected if None.
-        seed : int, default=42
-            Base seed for reproducible shuffling. Combined with auto-incrementing
-            epoch counter to produce different shuffling each epoch while ensuring
-            reproducibility across runs with the same seed.
+        seed : int or None, optional
+            Base seed for reproducible shuffling. If None, generates a random
+            seed shared across DDP ranks for consistent shuffling. Combined
+            with auto-incrementing epoch counter for different shuffling each epoch.
         """
         # Input validation
         if batch_size <= 0:
             raise ValueError("batch_size must be positive")
         if fetch_factor <= 0:
             raise ValueError("fetch_factor must be positive")
-        if not hasattr(data_collection, '__len__') or not hasattr(data_collection, '__getitem__'):
+        if not hasattr(data_collection, "__len__") or not hasattr(
+            data_collection, "__getitem__"
+        ):
             raise TypeError("data_collection must support indexing and len()")
         if not isinstance(strategy, SamplingStrategy):
             raise TypeError("strategy must be an instance of SamplingStrategy")
@@ -235,22 +239,64 @@ class scDataset(IterableDataset):
         # Epoch counter for reproducible shuffling - auto-increments each iteration
         self._epoch = 0
         # Base seed for deterministic shuffling sequences
-        self._base_seed = seed
+        # If None, generate random seed shared across DDP ranks
+        self._base_seed = self._init_seed(seed)
+
+    def _init_seed(self, seed: Optional[int]) -> int:
+        """
+        Initialize or generate the base seed for shuffling.
+
+        If a seed is provided, use it directly. If None, generate a random
+        seed and broadcast it from rank 0 to all other ranks to ensure
+        consistent shuffling across DDP processes.
+
+        Parameters
+        ----------
+        seed : int or None
+            Explicit seed, or None to generate a random shared seed.
+
+        Returns
+        -------
+        int
+            The seed to use for shuffling.
+        """
+        if seed is not None:
+            return seed
+
+        # Generate random seed - will be shared across ranks
+        import torch
+
+        if self.world_size > 1:
+            try:
+                import torch.distributed as dist
+
+                if dist.is_available() and dist.is_initialized():
+                    # Rank 0 generates seed and broadcasts to all ranks
+                    seed_tensor = torch.zeros(1, dtype=torch.int64)
+                    if self.rank == 0:
+                        seed_tensor[0] = torch.randint(0, 2**31, (1,)).item()
+                    dist.broadcast(seed_tensor, src=0)
+                    return int(seed_tensor.item())
+            except ImportError:
+                pass
+
+        # Single process or DDP not initialized: just generate random seed
+        return int(torch.randint(0, 2**31, (1,)).item())
 
     def _detect_ddp(self, rank: Optional[int], world_size: Optional[int]) -> tuple:
         """
         Detect or validate DDP settings.
-        
+
         Auto-detects from torch.distributed if available and initialized,
         otherwise defaults to single-process settings.
-        
+
         Parameters
         ----------
         rank : int or None
             Explicit rank, or None for auto-detection.
         world_size : int or None
             Explicit world_size, or None for auto-detection.
-            
+
         Returns
         -------
         tuple
@@ -258,6 +304,7 @@ class scDataset(IterableDataset):
         """
         try:
             import torch.distributed as dist
+
             if dist.is_available() and dist.is_initialized():
                 detected_rank = dist.get_rank()
                 detected_world_size = dist.get_world_size()
@@ -276,38 +323,38 @@ class scDataset(IterableDataset):
     def __len__(self) -> int:
         """
         Return the number of batches in the dataset for this rank.
-        
+
         Calculates the number of batches that will be yielded by the iterator
         based on the sampling strategy's effective length, batch size, and
         the number of DDP ranks (if using distributed training).
-        
+
         Returns
         -------
         int
             Number of batches in the dataset for this rank.
-            
+
         Examples
         --------
         >>> from scdataset.strategy import Streaming
         >>> dataset = scDataset(range(100), Streaming(), batch_size=10)
         >>> len(dataset)
         10
-        
+
         >>> # With drop_last=True
         >>> dataset = scDataset(range(105), Streaming(), batch_size=10, drop_last=True)
         >>> len(dataset)  # 105 // 10 = 10 (drops 5 samples)
         10
-        
+
         >>> # With drop_last=False (default)
         >>> dataset = scDataset(range(105), Streaming(), batch_size=10, drop_last=False)
         >>> len(dataset)  # ceil(105 / 10) = 11
         11
-        
+
         Notes
         -----
         When ``drop_last=True``, only complete batches are counted.
         When ``drop_last=False``, the last incomplete batch is included in the count.
-        
+
         When using DDP (``world_size > 1``), the returned length is the number
         of batches this specific rank will process, which is approximately
         ``total_batches / world_size``.
@@ -321,29 +368,46 @@ class scDataset(IterableDataset):
 
         # Round-robin distribution: this rank gets fetches at positions
         # rank, rank + world_size, rank + 2*world_size, ...
-        per_rank_fetches = num_fetches // self.world_size
-        if self.rank < (num_fetches % self.world_size):
-            per_rank_fetches += 1
+        rank_fetch_ids = list(range(self.rank, num_fetches, self.world_size))
 
         # Check if this rank gets any fetches
-        if per_rank_fetches == 0:
+        if len(rank_fetch_ids) == 0:
             return 0
 
-        # For simplicity, estimate based on per-rank sample count
-        per_rank_samples = (n + self.world_size - 1) // self.world_size
+        # Calculate exact number of samples for this rank
+        per_rank_samples = 0
+        for fetch_id in rank_fetch_ids:
+            fetch_start = fetch_id * fetch_size
+            fetch_end = min((fetch_id + 1) * fetch_size, n)
+            per_rank_samples += fetch_end - fetch_start
 
+        # Calculate batches from samples, accounting for drop_last
         if self.drop_last:
-            return per_rank_samples // self.batch_size
+            # Each fetch may have leftover samples that don't form a complete batch
+            # We need to count batches per fetch, not total samples
+            num_batches = 0
+            for fetch_id in rank_fetch_ids:
+                fetch_start = fetch_id * fetch_size
+                fetch_end = min((fetch_id + 1) * fetch_size, n)
+                fetch_samples = fetch_end - fetch_start
+                num_batches += fetch_samples // self.batch_size
+            return num_batches
         else:
-            return (per_rank_samples + self.batch_size - 1) // self.batch_size
-
+            # Each fetch yields ceil(fetch_samples / batch_size) batches
+            num_batches = 0
+            for fetch_id in rank_fetch_ids:
+                fetch_start = fetch_id * fetch_size
+                fetch_end = min((fetch_id + 1) * fetch_size, n)
+                fetch_samples = fetch_end - fetch_start
+                num_batches += (fetch_samples + self.batch_size - 1) // self.batch_size
+            return num_batches
 
     def __iter__(self):
         """
         Yield batches of data according to the sampling strategy.
-        
+
         Creates an iterator that yields batches of data by:
-        
+
         1. Getting indices from the sampling strategy (same across all DDP ranks)
         2. Dividing indices into fetch ranges
         3. Distributing fetch ranges among DDP ranks (round-robin)
@@ -351,13 +415,13 @@ class scDataset(IterableDataset):
         5. Fetching data in chunks and applying fetch transforms
         6. Dividing fetched data into batches and applying batch transforms
         7. Yielding transformed batches
-        
+
         Yields
         ------
         object
             Batches of data after applying all transforms. The exact type
             depends on the data collection and any applied transforms.
-            
+
         Examples
         --------
         >>> from scdataset.strategy import Streaming
@@ -371,24 +435,24 @@ class scDataset(IterableDataset):
         Batch 0: shape (5, 10)
         Batch 1: shape (5, 10)
         Batch 2: shape (5, 10)
-        
+
         Notes
-        -----        
+        -----
         The fetch-then-batch approach can improve I/O efficiency by:
-        
+
         - Sorting indices before fetching for better disk access patterns
         - Fetching multiple batches worth of data at once
         - Reducing the number of data access operations
-        
+
         Shuffling behavior is controlled by the sampling strategy's
         ``_shuffle_before_yield`` attribute.
-        
+
         **DDP Distribution**: When using multiple ranks (``world_size > 1``),
         fetches are distributed in round-robin fashion. Rank 0 gets fetches
         0, world_size, 2*world_size, etc. Rank 1 gets fetches 1, world_size+1,
         2*world_size+1, etc. This ensures even load distribution and that
         all data is processed exactly once across all ranks.
-        
+
         **Auto-incrementing epoch**: The epoch counter automatically increments
         each time the dataset is iterated. This ensures different shuffling
         each epoch without requiring manual ``set_epoch()`` calls.
@@ -407,7 +471,9 @@ class scDataset(IterableDataset):
             rng = np.random.default_rng(current_seed)
         else:
             # Workers get consistent ordering by using same base seed
-            rng = np.random.default_rng(current_seed + worker_info.seed - worker_info.id)
+            rng = np.random.default_rng(
+                current_seed + worker_info.seed - worker_info.id
+            )
 
         # Get indices from sampling strategy - same ordering across all ranks
         indices = self.strategy.get_indices(self.collection, seed=current_seed)
@@ -423,8 +489,7 @@ class scDataset(IterableDataset):
 
         # Build fetch ranges for this rank only
         fetch_ranges = [
-            (i * fetch_size, min((i + 1) * fetch_size, n))
-            for i in rank_fetch_ids
+            (i * fetch_size, min((i + 1) * fetch_size, n)) for i in rank_fetch_ids
         ]
 
         # Handle DataLoader multiprocessing by distributing fetch ranges among workers

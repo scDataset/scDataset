@@ -20,21 +20,21 @@ import numpy as np
 class MultiIndexable:
     """
     Container for multiple indexable objects that should be indexed together.
-    
+
     This class allows you to group multiple indexable objects (arrays, lists, etc.)
     and index them synchronously. It's particularly useful for scenarios like:
-    
+
     - Multi-modal single-cell data (gene expression + protein data)
     - Features and labels (X, y) that need to stay aligned
     - Multiple data modalities that share the same sample dimension
-    
+
     The class supports both positional and named access to the contained indexables,
     and ensures all indexables have the same length along the first dimension.
-    
+
     Additionally, it supports storing unstructured metadata that is not indexed
     but remains accessible after indexing operations. This is useful for keeping
     metadata like gene names, dataset info, or other non-sample-aligned data.
-    
+
     Parameters
     ----------
     *indexables : indexable objects or dict
@@ -52,7 +52,7 @@ class MultiIndexable:
     **named_indexables : dict, optional
         Named indexable objects passed as keyword arguments.
         Cannot be used together with positional indexables.
-        
+
     Attributes
     ----------
     names : list of str or None
@@ -61,7 +61,7 @@ class MultiIndexable:
         Number of indexables contained in this object.
     unstructured : dict
         Dictionary of non-indexable metadata (empty dict if none provided).
-        
+
     Raises
     ------
     ValueError
@@ -70,11 +70,11 @@ class MultiIndexable:
     TypeError
         If both positional and keyword indexables are provided,
         or if unstructured is not a dictionary.
-        
+
     Examples
     --------
     Create with positional arguments:
-    
+
     >>> import numpy as np
     >>> x = np.random.randn(100, 50)
     >>> y = np.random.randint(0, 3, 100)
@@ -83,9 +83,9 @@ class MultiIndexable:
     100
     >>> multi.count
     2
-    
+
     Create with dictionary as positional argument:
-    
+
     >>> data_dict = {
     ...     'genes': np.random.randn(100, 2000),
     ...     'proteins': np.random.randn(100, 100)
@@ -94,18 +94,18 @@ class MultiIndexable:
     >>> subset = multi[10:20]  # Get samples 10-19 from both modalities
     >>> subset['genes'].shape
     (10, 2000)
-    
+
     Create with keyword arguments:
-    
+
     >>> multi = MultiIndexable(
     ...     genes=np.random.randn(100, 2000),
     ...     proteins=np.random.randn(100, 100)
     ... )
     >>> multi.names
     ['genes', 'proteins']
-    
+
     Create with unstructured metadata:
-    
+
     >>> gene_names = ['Gene_' + str(i) for i in range(2000)]
     >>> multi = MultiIndexable(
     ...     X=np.random.randn(100, 2000),
@@ -116,23 +116,23 @@ class MultiIndexable:
     >>> subset = multi[10:20]  # Unstructured data is preserved
     >>> subset.unstructured['dataset_name']
     'MyDataset'
-    
+
     Access by name or position:
-    
+
     >>> multi = MultiIndexable(x, y, names=['x', 'y'])
     >>> same_x1 = multi[0]      # Access by position
     >>> same_x2 = multi['x']    # Access by name
     >>> np.array_equal(same_x1, same_x2)
     True
-    
+
     Use with scDataset:
-    
+
     >>> from scdataset import scDataset, Streaming
     >>> dataset = scDataset(multi, Streaming(), batch_size=32)
     >>> for batch in dataset:
     ...     genes, proteins = batch[0], batch[1]  # or batch['genes'], batch['proteins']
     ...     break
-        
+
     See Also
     --------
     scdataset.scDataset : Main dataset class that can use MultiIndexable objects
@@ -143,17 +143,17 @@ class MultiIndexable:
         *indexables,
         names: Optional[List[str]] = None,
         unstructured: Optional[Dict[str, Any]] = None,
-        **named_indexables
+        **named_indexables,
     ):
         """
         Initialize MultiIndexable with indexable objects.
-        
+
         Can be initialized in four ways:
         1. Positional: MultiIndexable(x, y, z)
-        2. Positional with names: MultiIndexable(x, y, names=['x', 'y'])  
+        2. Positional with names: MultiIndexable(x, y, names=['x', 'y'])
         3. Dictionary as positional: MultiIndexable({'x': x_data, 'y': y_data})
         4. Named keywords: MultiIndexable(x=x_data, y=y_data)
-        
+
         All variants support the optional ``unstructured`` parameter for
         non-indexable metadata.
         """
@@ -172,8 +172,12 @@ class MultiIndexable:
             self._unstructured = {}
 
         # Check for single dictionary as positional argument
-        if (len(indexables) == 1 and isinstance(indexables[0], dict)
-            and not named_indexables and names is None):
+        if (
+            len(indexables) == 1
+            and isinstance(indexables[0], dict)
+            and not named_indexables
+            and names is None
+        ):
             # Dictionary passed as positional argument
             data_dict = indexables[0]
             self._names = list(data_dict.keys())
@@ -207,14 +211,16 @@ class MultiIndexable:
 
         try:
             first_len = len(self._indexables[0])
-        except TypeError:
-            raise TypeError("All indexables must support len() operation")
+        except TypeError as err:
+            raise TypeError("All indexables must support len() operation") from err
 
         for i, indexable in enumerate(self._indexables[1:], start=1):
             try:
                 curr_len = len(indexable)
-            except TypeError:
-                raise TypeError(f"Indexable at position {i} does not support len() operation")
+            except TypeError as err:
+                raise TypeError(
+                    f"Indexable at position {i} does not support len() operation"
+                ) from err
 
             if curr_len != first_len:
                 name_info = f" ('{self._names[i]}')" if self._names else ""
@@ -238,16 +244,16 @@ class MultiIndexable:
     def unstructured(self) -> Dict[str, Any]:
         """
         Dictionary of non-indexable metadata.
-        
+
         This data is preserved unchanged when the MultiIndexable is indexed
         or subsetted. Returns the internal dictionary directly for efficiency;
         modify with care if you need to preserve the original.
-        
+
         Returns
         -------
         dict
             Dictionary containing unstructured metadata.
-            
+
         Examples
         --------
         >>> multi = MultiIndexable(
@@ -263,12 +269,12 @@ class MultiIndexable:
     def unstructured_keys(self) -> List[str]:
         """
         List of keys in the unstructured metadata dictionary.
-        
+
         Returns
         -------
         list of str
             Keys present in the unstructured dictionary.
-            
+
         Examples
         --------
         >>> multi = MultiIndexable(
@@ -283,20 +289,20 @@ class MultiIndexable:
     def __getitem__(self, key: Union[int, str, slice, Sequence[int], np.ndarray]):
         """
         Index the MultiIndexable object.
-        
+
         Parameters
         ----------
         key : int, str, slice, or array-like
             - int: Return the indexable at that position
             - str: Return the indexable with that name (if names provided)
             - slice/array: Return new MultiIndexable with subsets at those sample indices
-            
+
         Returns
         -------
         object or MultiIndexable
             - Single indexable if key is int or str
             - New MultiIndexable with subsets if key represents sample indices
-            
+
         Notes
         -----
         When subsetting with slices or arrays, the unstructured metadata is
@@ -307,15 +313,21 @@ class MultiIndexable:
             if key < 0:
                 key = len(self._indexables) + key
             if not 0 <= key < len(self._indexables):
-                raise IndexError(f"Index {key} out of range for {len(self._indexables)} indexables")
+                raise IndexError(
+                    f"Index {key} out of range for {len(self._indexables)} indexables"
+                )
             return self._indexables[key]
 
         elif isinstance(key, str):
             # Return the named indexable
             if self._mapping is None:
-                raise KeyError(f"No named indexables available. Available indices: 0-{len(self._indexables)-1}")
+                raise KeyError(
+                    f"No named indexables available. Available indices: 0-{len(self._indexables)-1}"
+                )
             if key not in self._mapping:
-                raise KeyError(f"Key '{key}' not found. Available keys: {list(self._mapping.keys())}")
+                raise KeyError(
+                    f"Key '{key}' not found. Available keys: {list(self._mapping.keys())}"
+                )
             return self._mapping[key]
 
         else:
@@ -323,18 +335,18 @@ class MultiIndexable:
             try:
                 subset_indexables = [indexable[key] for indexable in self._indexables]
             except (IndexError, TypeError) as e:
-                raise IndexError(f"Invalid indices for sample selection: {e}")
+                raise IndexError(f"Invalid indices for sample selection: {e}") from e
 
             # Preserve names and unstructured data if any
             if self._mapping:
                 return MultiIndexable(
                     **dict(zip(self._names, subset_indexables)),
-                    unstructured=self._unstructured if self._unstructured else None
+                    unstructured=self._unstructured if self._unstructured else None,
                 )
             else:
                 return MultiIndexable(
                     *subset_indexables,
-                    unstructured=self._unstructured if self._unstructured else None
+                    unstructured=self._unstructured if self._unstructured else None,
                 )
 
     def __len__(self) -> int:
@@ -355,7 +367,9 @@ class MultiIndexable:
         else:
             unstructured_info = ""
 
-        return f"MultiIndexable({indexable_info}, samples={n_samples}{unstructured_info})"
+        return (
+            f"MultiIndexable({indexable_info}, samples={n_samples}{unstructured_info})"
+        )
 
     def __iter__(self):
         """Iterate over indexables."""
@@ -364,7 +378,7 @@ class MultiIndexable:
     def items(self):
         """
         Iterate over (name, indexable) pairs.
-        
+
         Yields
         ------
         tuple
@@ -381,7 +395,7 @@ class MultiIndexable:
     def keys(self):
         """
         Get the names or indices of indexables.
-        
+
         Returns
         -------
         list
@@ -392,7 +406,7 @@ class MultiIndexable:
     def values(self):
         """
         Get the indexable objects.
-        
+
         Returns
         -------
         list

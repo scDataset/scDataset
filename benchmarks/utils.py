@@ -18,21 +18,23 @@ evaluate_loader : Evaluate data loader performance
 save_results_to_csv : Save benchmark results to CSV
 """
 
-import time
 import gc
+import os
+
+# Import MultiIndexable for fetch_transform_adata
+import sys
+import time
+from typing import List, Optional, Sequence, Union
+
 import numpy as np
 import pandas as pd
 import torch
 import yaml
-from typing import Union, Sequence, Optional, List
-from tqdm.auto import tqdm
 from scipy import stats
+from tqdm.auto import tqdm
 
-# Import MultiIndexable for fetch_transform_adata
-import sys
-import os
 # Add the src folder to path for development imports
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 try:
     from scdataset import MultiIndexable
 except ImportError:
@@ -42,11 +44,11 @@ except ImportError:
 def fetch_transform_hf(batch, num_genes: int = 62713):
     """
     Transform HuggingFace sparse gene expression data to dense tensors.
-    
+
     This transform converts sparse gene expression data stored in HuggingFace
     format (with separate 'genes' and 'expressions' arrays) into dense PyTorch
     tensors suitable for model training.
-    
+
     Parameters
     ----------
     batch : dict or list
@@ -56,81 +58,81 @@ def fetch_transform_hf(batch, num_genes: int = 62713):
     num_genes : int, default=62713
         Total number of genes (dimension of output tensor).
         Default is the Tahoe-100M gene count.
-        
+
     Returns
     -------
     torch.Tensor
         Dense tensor of shape (batch_size, num_genes) with gene expression values.
-        
+
     Examples
     --------
     >>> # With scDataset
     >>> from scdataset import scDataset, BlockShuffling
     >>> dataset = scDataset(
-    ...     hf_dataset, 
-    ...     BlockShuffling(), 
+    ...     hf_dataset,
+    ...     BlockShuffling(),
     ...     batch_size=64,
     ...     fetch_transform=fetch_transform_hf
     ... )
-    
+
     Notes
     -----
     This transform is specifically designed for datasets like Tahoe-100M that
     store sparse gene expression data in HuggingFace Datasets format, where
     each sample has variable-length arrays of gene indices and their expression
     values.
-    
+
     The transform efficiently converts the sparse representation to dense
     tensors using numpy operations before converting to PyTorch, which is
     faster than building sparse PyTorch tensors directly.
     """
     if isinstance(batch, dict):
         # Extract numpy arrays from batch
-        batch_genes = batch['genes']  # List of numpy arrays
-        batch_expr = batch['expressions']  # List of numpy arrays
+        batch_genes = batch["genes"]  # List of numpy arrays
+        batch_expr = batch["expressions"]  # List of numpy arrays
     elif isinstance(batch, list):
         # Extract numpy arrays from batch
-        batch_genes = [item['genes'] for item in batch]
-        batch_expr = [item['expressions'] for item in batch]
+        batch_genes = [item["genes"] for item in batch]
+        batch_expr = [item["expressions"] for item in batch]
     else:
         raise ValueError("Batch must be a dictionary or a list of dictionaries.")
 
     batch_size = len(batch_genes)
-    
+
     # Generate batch indices using numpy
     lengths = [len(arr) for arr in batch_genes]
     batch_indices_np = np.concatenate(
         [np.full(l, i, dtype=np.int64) for i, l in enumerate(lengths)]
     )
-    
+
     # Concatenate all genes and expressions in numpy first
     gene_indices_np = np.concatenate(batch_genes)
     values_np = np.concatenate(batch_expr)
-    
+
     # Single conversion to tensors
     batch_indices = torch.from_numpy(batch_indices_np)
     gene_indices = torch.from_numpy(gene_indices_np)
     values = torch.from_numpy(values_np).float()
-    
+
     # Create combined indices tensor
     indices = torch.stack([batch_indices, gene_indices], dim=0)
-    
+
     # Create dense tensor in one assignment
     dense_tensor = torch.zeros(batch_size, num_genes, dtype=values.dtype)
     dense_tensor[indices[0], indices[1]] = values
-    
+
     return dense_tensor
 
 
 def fetch_transform_adata(batch, columns: Optional[List[str]] = None):
     """
     Transform AnnData/AnnCollection batch to MultiIndexable with optional obs columns.
-    
+
     This transform converts a batch from an AnnCollection (or backed AnnData)
     into a MultiIndexable object containing the expression matrix and optionally
     selected observation columns. The MultiIndexable can then be indexed in
     subsequent batch operations.
-    
+
     Parameters
     ----------
     batch : AnnData-like
@@ -141,27 +143,27 @@ def fetch_transform_adata(batch, columns: Optional[List[str]] = None):
     columns : list of str, optional
         List of observation column names to include in the output.
         If None, only the X matrix is included.
-        
+
     Returns
     -------
     MultiIndexable
         A MultiIndexable object with:
         - 'X': Dense expression matrix as numpy array
         - Additional keys for each column in `columns` (as numpy arrays)
-        
+
     Examples
     --------
     >>> # Basic usage - just X matrix
     >>> from scdataset import scDataset, BlockShuffling
     >>> from functools import partial
-    >>> 
+    >>>
     >>> dataset = scDataset(
     ...     ann_collection,
     ...     BlockShuffling(),
     ...     batch_size=64,
     ...     fetch_transform=fetch_transform_adata
     ... )
-    
+
     >>> # With observation columns
     >>> fetch_fn = partial(fetch_transform_adata, columns=['cell_type', 'batch'])
     >>> dataset = scDataset(
@@ -174,15 +176,15 @@ def fetch_transform_adata(batch, columns: Optional[List[str]] = None):
     ...     X = batch['X']
     ...     cell_types = batch['cell_type']
     ...     break
-    
+
     Notes
     -----
     This transform calls `.to_memory()` to materialize the AnnData object,
     which is necessary when working with backed or lazy AnnCollection objects.
-    
+
     Sparse matrices are automatically converted to dense numpy arrays for
     compatibility with standard indexing operations.
-    
+
     The returned MultiIndexable preserves any unstructured metadata from
     the original batch if you set it explicitly.
     """
@@ -191,20 +193,20 @@ def fetch_transform_adata(batch, columns: Optional[List[str]] = None):
         import scipy.sparse as sp
     except ImportError:
         sp = None
-    
+
     # Materialize the AnnData batch in memory
     batch = batch.to_memory()
-    
+
     X = batch.X
     # Densify if X is a sparse matrix
     if sp is not None and sp.issparse(X):
         X = X.toarray()
-        
+
     obs = batch.obs
-        
+
     # Create dict with X and all obs columns as numpy arrays
-    data_dict = {'X': X}
-    
+    data_dict = {"X": X}
+
     if columns is not None:
         for col in columns:
             data_dict[col] = obs[col].values
@@ -214,14 +216,16 @@ def fetch_transform_adata(batch, columns: Optional[List[str]] = None):
     return multi
 
 
-def fetch_callback_bionemo(data_collection, idx: Union[int, slice, Sequence[int], np.ndarray, torch.Tensor]) -> torch.Tensor:
+def fetch_callback_bionemo(
+    data_collection, idx: Union[int, slice, Sequence[int], np.ndarray, torch.Tensor]
+) -> torch.Tensor:
     """
     Fetch callback for BioNeMo SingleCellMemMapDataset.
-    
-    This callback provides custom indexing logic for BioNeMo's 
+
+    This callback provides custom indexing logic for BioNeMo's
     SingleCellMemMapDataset, which returns sparse matrices that need
     to be collated and densified for use with scDataset.
-    
+
     Parameters
     ----------
     data_collection : SingleCellMemMapDataset
@@ -231,17 +235,17 @@ def fetch_callback_bionemo(data_collection, idx: Union[int, slice, Sequence[int]
         - int: Single index
         - slice: Slice object
         - list/ndarray/tensor: Batch of indices
-        
+
     Returns
     -------
     torch.Tensor
         Dense tensor of shape (batch_size, num_genes) with expression values.
-        
+
     Examples
     --------
     >>> from scdataset import scDataset, BlockShuffling
     >>> from bionemo.scdl.io.single_cell_memmap_dataset import SingleCellMemMapDataset
-    >>> 
+    >>>
     >>> bionemo_data = SingleCellMemMapDataset(data_path='/path/to/data')
     >>> dataset = scDataset(
     ...     bionemo_data,
@@ -249,7 +253,7 @@ def fetch_callback_bionemo(data_collection, idx: Union[int, slice, Sequence[int]
     ...     batch_size=64,
     ...     fetch_callback=fetch_callback_bionemo
     ... )
-    
+
     Notes
     -----
     This callback requires the bionemo-scdl package to be installed.
@@ -257,10 +261,12 @@ def fetch_callback_bionemo(data_collection, idx: Union[int, slice, Sequence[int]
     """
     # Import bionemo collate function locally
     from bionemo.scdl.util.torch_dataloader_utils import collate_sparse_matrix_batch
-    
+
     if isinstance(idx, int):
         # Single index
-        return collate_sparse_matrix_batch([data_collection.__getitem__(idx)]).to_dense()
+        return collate_sparse_matrix_batch(
+            [data_collection.__getitem__(idx)]
+        ).to_dense()
     elif isinstance(idx, slice):
         # Slice: convert to a list of indices
         indices = list(range(*idx.indices(len(data_collection))))
@@ -279,23 +285,23 @@ def fetch_callback_bionemo(data_collection, idx: Union[int, slice, Sequence[int]
 def load_config(config_path: str) -> dict:
     """
     Load benchmark configuration from a YAML file.
-    
+
     Parameters
     ----------
     config_path : str
         Path to the YAML configuration file.
-        
+
     Returns
     -------
     dict
         Configuration dictionary with benchmark parameters.
         If loading fails, returns default configuration.
-        
+
     Examples
     --------
     >>> config = load_config('experiments/my_config.yaml')
     >>> batch_sizes = config.get('batch_sizes', [64, 128])
-    
+
     Notes
     -----
     Default configuration includes:
@@ -308,7 +314,7 @@ def load_config(config_path: str) -> dict:
     - test_modes: 'all'
     """
     try:
-        with open(config_path, 'r') as file:
+        with open(config_path) as file:
             config = yaml.safe_load(file)
         return config
     except Exception as e:
@@ -325,14 +331,16 @@ def load_config(config_path: str) -> dict:
         }
 
 
-def evaluate_loader(loader, test_time_seconds: int = 120, description: str = "Testing loader") -> dict:
+def evaluate_loader(
+    loader, test_time_seconds: int = 120, description: str = "Testing loader"
+) -> dict:
     """
     Evaluate the performance of a data loader for a specified duration.
-    
+
     This function benchmarks a data loader by iterating through it for a
     specified amount of time (after a warm-up period) and measuring throughput
     metrics.
-    
+
     Parameters
     ----------
     loader : iterable
@@ -342,7 +350,7 @@ def evaluate_loader(loader, test_time_seconds: int = 120, description: str = "Te
         Duration of the test in seconds (after warm-up).
     description : str, default="Testing loader"
         Description shown in the progress bar.
-        
+
     Returns
     -------
     dict
@@ -353,35 +361,35 @@ def evaluate_loader(loader, test_time_seconds: int = 120, description: str = "Te
         - samples_per_second: Throughput in samples per second
         - avg_batch_entropy: Average entropy of plate distribution (if available)
         - std_batch_entropy: Std dev of entropy (if available)
-        
+
     Examples
     --------
     >>> from torch.utils.data import DataLoader
     >>> loader = DataLoader(dataset, batch_size=64)
     >>> results = evaluate_loader(loader, test_time_seconds=60)
     >>> print(f"Throughput: {results['samples_per_second']:.1f} samples/sec")
-    
+
     Notes
     -----
     The function includes a 30-second warm-up period before measuring
     performance to allow for JIT compilation and cache warming.
-    
+
     Entropy calculation is only performed if batches have an `.obs['plate']`
     attribute, which is specific to AnnData-based datasets.
     """
     gc.collect()
-    
+
     total_samples = 0
     batch_plates = []
 
     pbar = tqdm(desc=f"{description} (for {test_time_seconds}s)")
-    
+
     # Initialize warm-up timer
     warm_up_seconds = 30
     warm_up_start = time.perf_counter()
     warm_up_end = warm_up_start + warm_up_seconds
     is_warming_up = True
-    
+
     for i, batch in enumerate(loader):
         # Handle different batch structures
         if hasattr(batch, "X"):
@@ -389,12 +397,12 @@ def evaluate_loader(loader, test_time_seconds: int = 120, description: str = "Te
             batch_size = batch.X.shape[0]
             if not is_warming_up:
                 # Collect plate info for entropy calculation
-                batch_plates.append(batch.obs['plate'].values)
+                batch_plates.append(batch.obs["plate"].values)
         else:
             batch_size = batch.shape[0] if hasattr(batch, "shape") else len(batch)
-                
+
         current_time = time.perf_counter()
-        
+
         if is_warming_up:
             # We're in warm-up period
             if current_time >= warm_up_end:
@@ -403,15 +411,19 @@ def evaluate_loader(loader, test_time_seconds: int = 120, description: str = "Te
                 total_samples = 0
                 start_time = time.perf_counter()
                 end_time = start_time + test_time_seconds
-                pbar.set_description(f"{description} (warming up complete, testing for {test_time_seconds}s)")
+                pbar.set_description(
+                    f"{description} (warming up complete, testing for {test_time_seconds}s)"
+                )
             else:
-                pbar.set_description(f"{description} (warming up: {current_time - warm_up_start:.1f}/{warm_up_seconds}s)")
+                pbar.set_description(
+                    f"{description} (warming up: {current_time - warm_up_start:.1f}/{warm_up_seconds}s)"
+                )
                 pbar.update(1)
                 continue
-        
+
         # Now we're past the warm-up period
         total_samples += batch_size
-        
+
         elapsed = current_time - start_time
         pbar.set_postfix(samples=total_samples, elapsed=f"{elapsed:.2f}s")
         pbar.update(1)
@@ -420,16 +432,16 @@ def evaluate_loader(loader, test_time_seconds: int = 120, description: str = "Te
             break
 
     pbar.close()
-    
+
     # Calculate the load time metrics
     elapsed = time.perf_counter() - start_time
     avg_time_per_sample = elapsed / total_samples if total_samples > 0 else 0
     samples_per_second = total_samples / elapsed if elapsed > 0 else 0
-    
+
     # Calculate entropy measures (if plate data is available)
     avg_batch_entropy = 0
     std_batch_entropy = 0
-    
+
     if batch_plates:
         batch_entropies = []
         # Calculate entropy for each batch
@@ -439,12 +451,12 @@ def evaluate_loader(loader, test_time_seconds: int = 120, description: str = "Te
                 probabilities = counts / len(plates)
                 batch_entropy = stats.entropy(probabilities, base=2)
                 batch_entropies.append(batch_entropy)
-        
+
         # Calculate average and standard deviation of entropy across all batches
         if batch_entropies:
             avg_batch_entropy = np.mean(batch_entropies)
             std_batch_entropy = np.std(batch_entropies)
-    
+
     return {
         "samples_tested": total_samples,
         "elapsed": elapsed,
@@ -458,19 +470,19 @@ def evaluate_loader(loader, test_time_seconds: int = 120, description: str = "Te
 def save_results_to_csv(results: list, filepath: Optional[str] = None) -> pd.DataFrame:
     """
     Save benchmark results to a CSV file.
-    
+
     Parameters
     ----------
     results : list of dict
         List of result dictionaries from evaluate_loader.
     filepath : str, optional
         Path to save the CSV file. If None, only returns DataFrame.
-        
+
     Returns
     -------
     pd.DataFrame
         DataFrame containing the results.
-        
+
     Examples
     --------
     >>> results = []
@@ -481,10 +493,10 @@ def save_results_to_csv(results: list, filepath: Optional[str] = None) -> pd.Dat
     >>> df = save_results_to_csv(results, 'benchmark_results.csv')
     """
     df = pd.DataFrame(results)
-    
+
     # Save to CSV
     if filepath is not None:
         df.to_csv(filepath, index=False)
         print(f"Updated results saved to {filepath}")
-    
+
     return df

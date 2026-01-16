@@ -73,12 +73,12 @@ jobs:
         # Clone the docs repository to update stable symlink
         git clone https://x-access-token:${{ secrets.DOCS_DEPLOY_TOKEN }}@github.com/scdataset/scdataset.github.io.git temp-docs
         cd temp-docs
-        
+
         # Create/update stable symlink to point to this version
         VERSION=${GITHUB_REF#refs/tags/v}
         rm -rf stable
         ln -sf $VERSION stable
-        
+
         # Create versions.json for version switcher
         cat > versions.json << 'EOF'
         [
@@ -88,13 +88,13 @@ jobs:
             "url": "https://scdataset.github.io/stable/"
           },
           {
-            "version": "latest", 
+            "version": "latest",
             "title": "latest",
             "url": "https://scdataset.github.io/latest/"
           }
         ]
         EOF
-        
+
         # Create root index.html that redirects to stable
         cat > index.html << 'EOF'
         <!DOCTYPE html>
@@ -110,7 +110,7 @@ jobs:
         </body>
         </html>
         EOF
-        
+
         # Create master sitemap.xml that includes all versions
         cat > sitemap.xml << 'EOF'
         <?xml version="1.0" encoding="UTF-8"?>
@@ -123,7 +123,7 @@ jobs:
           </sitemap>
         </sitemapindex>
         EOF
-        
+
         # Commit the changes
         git config user.name 'github-actions[bot]'
         git config user.email 'github-actions[bot]@users.noreply.github.com'

@@ -5,6 +5,14 @@ scDataset Documentation
    :target: https://pypi.org/project/scDataset/
    :alt: PyPI version
 
+.. image:: https://static.pepy.tech/personalized-badge/scdataset?period=total&units=INTERNATIONAL_SYSTEM&left_color=GREY&right_color=GREEN&left_text=downloads
+   :target: https://pepy.tech/projects/scdataset
+   :alt: PyPI Downloads
+
+.. image:: https://codecov.io/gh/scDataset/scDataset/branch/main/graph/badge.svg
+   :target: https://codecov.io/gh/scDataset/scDataset
+   :alt: codecov
+
 .. image:: https://img.shields.io/badge/License-MIT-green.svg
    :target: https://opensource.org/licenses/MIT
    :alt: License: MIT

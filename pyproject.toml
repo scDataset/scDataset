@@ -79,6 +79,7 @@ exclude = [
     "docs/build",
     "build",
     "dist",
+    "benchmarks",  # Benchmarks have different requirements (E402 for env setup)
 ]
 
 [tool.ruff.lint]
