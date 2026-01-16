@@ -114,7 +114,10 @@ Performance Tips
 # * :doc:`/api/index` - Complete API reference
 # * :doc:`/examples/index` - Usage examples and tutorials
 
-from .auto_config import estimate_sample_size, suggest_parameters
+from .auto_config import (
+    estimate_sample_size,
+    suggest_parameters,
+)
 from .multiindexable import MultiIndexable
 from .scdataset import scDataset
 from .strategy import (

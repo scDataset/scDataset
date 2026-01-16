@@ -287,6 +287,48 @@ class TestEstimateSampleSize:
         # Sparse should be smaller (only ~10% non-zero)
         assert size_dense >= 500 * 4  # Full dense array
 
+    def test_multiindexable_sample_size(self):
+        """Test estimate_sample_size correctly samples MultiIndexable.
+
+        MultiIndexable uses list indexing for samples (data[[i]]) rather than
+        integer indexing (data[i]) which returns the i-th indexable array.
+        """
+        from scdataset import MultiIndexable
+
+        # Create MultiIndexable with known sizes
+        n_samples = 100
+        features = np.random.randn(n_samples, 50).astype(np.float32)  # 50 * 4 = 200
+        labels = np.random.randn(n_samples, 10).astype(np.float64)  # 10 * 8 = 80
+
+        multi = MultiIndexable(features=features, labels=labels)
+
+        # Expected size per sample
+        expected = 50 * 4 + 10 * 8  # 200 + 80 = 280 bytes
+
+        size = estimate_sample_size(multi, n_samples=8)
+
+        # Should be exactly the expected size (data only, no overhead)
+        assert size == expected, f"Expected {expected}, got {size}"
+
+    def test_multiindexable_with_fetch_transform(self):
+        """Test estimate_sample_size with MultiIndexable and fetch_transform."""
+        from scdataset import MultiIndexable
+
+        n_samples = 100
+        features = np.random.randn(n_samples, 50).astype(np.float32)
+        labels = np.arange(n_samples, dtype=np.int64)
+
+        multi = MultiIndexable(features=features, labels=labels)
+
+        # Transform that extracts just the features
+        def get_features(sample):
+            return sample["features"]
+
+        size = estimate_sample_size(multi, fetch_transform=get_features)
+
+        # Should be just the features: 50 * 4 = 200 bytes
+        assert size == 50 * 4
+
 
 # =============================================================================
 # suggest_parameters Tests

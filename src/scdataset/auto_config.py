@@ -82,15 +82,38 @@ def _deep_sizeof(obj: Any, seen: Optional[Set[int]] = None) -> int:
             size += obj.indptr.nbytes
         return int(size)
 
+    # AnnCollection objects - count obs and internal structures
+    # Check for AnnCollection by looking for adatas attribute and n_obs
+    if hasattr(obj, "adatas") and hasattr(obj, "n_obs") and hasattr(obj, "n_vars"):
+        size = 0
+        # obs DataFrame (concatenated cell metadata) - this gets copied per worker
+        if hasattr(obj, "obs") and obj.obs is not None:
+            size += _deep_sizeof(obj.obs, seen)
+        # var DataFrame (shared gene metadata)
+        if hasattr(obj, "var") and obj.var is not None:
+            size += _deep_sizeof(obj.var, seen)
+        # obs_names and var_names (index objects)
+        if hasattr(obj, "obs_names") and obj.obs_names is not None:
+            size += _deep_sizeof(obj.obs_names, seen)
+        if hasattr(obj, "var_names") and obj.var_names is not None:
+            size += _deep_sizeof(obj.var_names, seen)
+        # Internal adatas list
+        for adata in obj.adatas:
+            size += _deep_sizeof(adata, seen)
+        return int(size)
+
     # AnnData objects - special handling for accurate estimation
     if hasattr(obj, "X") and hasattr(obj, "obs") and hasattr(obj, "var_names"):
         size = 0
-        # X matrix (main data)
+        # X matrix (main data) - for backed mode, this doesn't load data
         if obj.X is not None:
             size += _deep_sizeof(obj.X, seen)
         # obs DataFrame (cell metadata for this sample)
         if hasattr(obj, "obs") and obj.obs is not None:
             size += _deep_sizeof(obj.obs, seen)
+        # var DataFrame (gene metadata)
+        if hasattr(obj, "var") and obj.var is not None:
+            size += _deep_sizeof(obj.var, seen)
         # obsm matrices (e.g., embeddings)
         if hasattr(obj, "obsm") and obj.obsm is not None:
             for key in obj.obsm.keys():
@@ -99,7 +122,6 @@ def _deep_sizeof(obj: Any, seen: Optional[Set[int]] = None) -> int:
         if hasattr(obj, "layers") and obj.layers is not None:
             for key in obj.layers.keys():
                 size += _deep_sizeof(obj.layers[key], seen)
-        # Note: var is shared across samples, so we don't count it per-sample
         return int(size)
 
     # MultiIndexable from scdataset - has _indexables list and unstructured property
@@ -220,10 +242,18 @@ def estimate_sample_size(
     n_samples = min(n_samples, len(data_collection))
     sizes = []
 
+    # Check if data_collection is a MultiIndexable (uses list indexing for samples)
+    is_multiindexable = hasattr(data_collection, "_indexables") and hasattr(
+        data_collection, "unstructured"
+    )
+
     for i in range(n_samples):
         # Step 1: Fetch sample (using callback or default indexing)
         if fetch_callback is not None:
             sample = fetch_callback(data_collection, [i])
+        elif is_multiindexable:
+            # MultiIndexable uses list indexing for samples, not integer indexing
+            sample = data_collection[[i]]
         else:
             sample = data_collection[i]
 
