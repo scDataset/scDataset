@@ -1,13 +1,15 @@
 """
-Tests for auto_config module.
+Tests for auto_config module (experimental).
 
 This module tests the automatic parameter suggestion functionality.
+Note: auto_config is now in the experimental subpackage.
 """
 
 import numpy as np
 import pytest
 
-from scdataset import estimate_sample_size, suggest_parameters
+# Import from experimental module (also available via main package for backward compatibility)
+from scdataset.experimental import estimate_sample_size, suggest_parameters
 
 # =============================================================================
 # Fixtures
@@ -420,7 +422,7 @@ class TestDeepSizeof:
 
     def test_numpy_array(self):
         """Test size estimation for numpy arrays."""
-        from scdataset.auto_config import _deep_sizeof
+        from scdataset.experimental.auto_config import _deep_sizeof
 
         arr = np.zeros((100, 50), dtype=np.float32)
         size = _deep_sizeof(arr)
@@ -428,7 +430,7 @@ class TestDeepSizeof:
 
     def test_numpy_array_int64(self):
         """Test size estimation for int64 numpy arrays."""
-        from scdataset.auto_config import _deep_sizeof
+        from scdataset.experimental.auto_config import _deep_sizeof
 
         arr = np.zeros((256, 128), dtype=np.int64)
         size = _deep_sizeof(arr)
@@ -437,7 +439,7 @@ class TestDeepSizeof:
     def test_scipy_sparse_csr(self):
         """Test size estimation for scipy CSR sparse matrix."""
         sparse = pytest.importorskip("scipy.sparse")
-        from scdataset.auto_config import _deep_sizeof
+        from scdataset.experimental.auto_config import _deep_sizeof
 
         # Create sparse matrix with known sparsity
         dense = np.random.randn(100, 500)
@@ -451,7 +453,7 @@ class TestDeepSizeof:
     def test_scipy_sparse_csc(self):
         """Test size estimation for scipy CSC sparse matrix."""
         sparse = pytest.importorskip("scipy.sparse")
-        from scdataset.auto_config import _deep_sizeof
+        from scdataset.experimental.auto_config import _deep_sizeof
 
         dense = np.random.randn(100, 500)
         dense[dense < 0.5] = 0
@@ -464,7 +466,7 @@ class TestDeepSizeof:
     def test_torch_tensor(self):
         """Test size estimation for PyTorch tensors."""
         torch = pytest.importorskip("torch")
-        from scdataset.auto_config import _deep_sizeof
+        from scdataset.experimental.auto_config import _deep_sizeof
 
         tensor = torch.zeros(100, 200, dtype=torch.float32)
         size = _deep_sizeof(tensor)
@@ -474,7 +476,7 @@ class TestDeepSizeof:
     def test_torch_tensor_int64(self):
         """Test size estimation for int64 PyTorch tensors."""
         torch = pytest.importorskip("torch")
-        from scdataset.auto_config import _deep_sizeof
+        from scdataset.experimental.auto_config import _deep_sizeof
 
         tensor = torch.zeros(50, 100, dtype=torch.int64)
         size = _deep_sizeof(tensor)
@@ -483,7 +485,7 @@ class TestDeepSizeof:
     def test_pandas_dataframe(self):
         """Test size estimation for pandas DataFrame."""
         pd = pytest.importorskip("pandas")
-        from scdataset.auto_config import _deep_sizeof
+        from scdataset.experimental.auto_config import _deep_sizeof
 
         df = pd.DataFrame(
             {
@@ -502,7 +504,7 @@ class TestDeepSizeof:
     def test_pandas_series(self):
         """Test size estimation for pandas Series."""
         pd = pytest.importorskip("pandas")
-        from scdataset.auto_config import _deep_sizeof
+        from scdataset.experimental.auto_config import _deep_sizeof
 
         series = pd.Series(np.arange(1000, dtype=np.int64))
         size = _deep_sizeof(series)
@@ -512,7 +514,7 @@ class TestDeepSizeof:
 
     def test_dict_with_arrays(self):
         """Test size estimation for dict containing numpy arrays."""
-        from scdataset.auto_config import _deep_sizeof
+        from scdataset.experimental.auto_config import _deep_sizeof
 
         sample = {
             "input_ids": np.zeros(512, dtype=np.int64),
@@ -527,7 +529,7 @@ class TestDeepSizeof:
 
     def test_nested_dict(self):
         """Test size estimation for nested dictionaries."""
-        from scdataset.auto_config import _deep_sizeof
+        from scdataset.experimental.auto_config import _deep_sizeof
 
         nested = {
             "level1": {
@@ -544,7 +546,7 @@ class TestDeepSizeof:
 
     def test_list_of_arrays(self):
         """Test size estimation for list containing numpy arrays."""
-        from scdataset.auto_config import _deep_sizeof
+        from scdataset.experimental.auto_config import _deep_sizeof
 
         items = [
             np.zeros(100, dtype=np.float32),
@@ -558,7 +560,7 @@ class TestDeepSizeof:
 
     def test_string(self):
         """Test size estimation for strings."""
-        from scdataset.auto_config import _deep_sizeof
+        from scdataset.experimental.auto_config import _deep_sizeof
 
         # ASCII string
         s = "hello world"
@@ -572,7 +574,7 @@ class TestDeepSizeof:
 
     def test_bytes(self):
         """Test size estimation for bytes."""
-        from scdataset.auto_config import _deep_sizeof
+        from scdataset.experimental.auto_config import _deep_sizeof
 
         b = b"hello world"
         size = _deep_sizeof(b)
@@ -580,7 +582,7 @@ class TestDeepSizeof:
 
     def test_shared_object_counted_once(self):
         """Test that shared objects are only counted once."""
-        from scdataset.auto_config import _deep_sizeof
+        from scdataset.experimental.auto_config import _deep_sizeof
 
         shared_array = np.zeros(1000, dtype=np.float64)
         # Both dict values point to the same array
@@ -598,7 +600,7 @@ class TestDeepSizeof:
         """Test size estimation for AnnData objects."""
         anndata = pytest.importorskip("anndata")
         pd = pytest.importorskip("pandas")
-        from scdataset.auto_config import _deep_sizeof
+        from scdataset.experimental.auto_config import _deep_sizeof
 
         # Create AnnData with known sizes
         n_obs, n_vars = 100, 500
@@ -630,7 +632,7 @@ class TestDeepSizeof:
         """Test size estimation for AnnData with sparse X."""
         anndata = pytest.importorskip("anndata")
         sparse = pytest.importorskip("scipy.sparse")
-        from scdataset.auto_config import _deep_sizeof
+        from scdataset.experimental.auto_config import _deep_sizeof
 
         n_obs, n_vars = 100, 2000
         # Create sparse matrix (90% zeros)
@@ -650,7 +652,7 @@ class TestDeepSizeof:
     def test_multiindexable(self):
         """Test size estimation for MultiIndexable objects."""
         from scdataset import MultiIndexable
-        from scdataset.auto_config import _deep_sizeof
+        from scdataset.experimental.auto_config import _deep_sizeof
 
         # MultiIndexable requires all structured arrays to have same length
         n_samples = 100
@@ -672,7 +674,7 @@ class TestDeepSizeof:
         """Test size estimation for primitive types."""
         import sys
 
-        from scdataset.auto_config import _deep_sizeof
+        from scdataset.experimental.auto_config import _deep_sizeof
 
         # Integer
         size_int = _deep_sizeof(42)
@@ -690,7 +692,7 @@ class TestDeepSizeof:
         """Test size estimation for empty structures."""
         import sys
 
-        from scdataset.auto_config import _deep_sizeof
+        from scdataset.experimental.auto_config import _deep_sizeof
 
         # Empty dict
         size_dict = _deep_sizeof({})
@@ -771,6 +773,139 @@ class TestAutoConfigIntegration:
         assert "System Information" in captured.out or len(captured.out) > 0
         # Should still return valid params
         assert params["fetch_factor"] >= 1
+
+
+# =============================================================================
+# Memory Validation Tests
+# =============================================================================
+
+
+class TestMemoryEstimationAccuracy:
+    """
+    Tests that verify memory estimates match actual usage.
+
+    These tests validate that estimate_sample_size produces accurate results
+    by comparing estimated sizes with actual batch sizes from scDataset.
+    """
+
+    def test_numpy_batch_size_matches_estimate(self):
+        """Verify numpy batch size matches sample size estimate * batch_size."""
+        from scdataset import Streaming, scDataset
+        from scdataset.experimental.auto_config import _deep_sizeof
+
+        # Create data with known size
+        n_samples = 500
+        n_features = 1000  # 1000 float32 = 4000 bytes per sample
+        batch_size = 32
+        data = np.random.randn(n_samples, n_features).astype(np.float32)
+
+        # Estimate sample size
+        estimated_sample_size = estimate_sample_size(data)
+        expected_sample_size = n_features * 4  # float32 = 4 bytes
+
+        # Sample size should be exact
+        assert estimated_sample_size == expected_sample_size, (
+            f"Sample size mismatch: estimated={estimated_sample_size}, "
+            f"expected={expected_sample_size}"
+        )
+
+        # Create dataset and verify batch size
+        strategy = Streaming(indices=np.arange(100))
+        dataset = scDataset(data, strategy, batch_size=batch_size, fetch_factor=2)
+
+        expected_batch_size = batch_size * expected_sample_size
+        actual_batch_sizes = []
+
+        for i, batch in enumerate(dataset):
+            actual_batch_sizes.append(_deep_sizeof(batch))
+            if i >= 2:
+                break
+
+        avg_actual = np.mean(actual_batch_sizes)
+        error = abs(avg_actual - expected_batch_size) / expected_batch_size
+
+        # Should be within 5%
+        assert error < 0.05, (
+            f"Batch size error too high: {error:.1%}. "
+            f"Expected {expected_batch_size}, got {avg_actual}"
+        )
+
+    def test_multiindexable_batch_size_matches_estimate(self):
+        """Verify MultiIndexable batch size matches estimate."""
+        from scdataset import MultiIndexable, Streaming, scDataset
+        from scdataset.experimental.auto_config import _deep_sizeof
+
+        n_samples = 500
+        n_features = 500
+        batch_size = 32
+
+        # Create MultiIndexable with known sizes
+        features = np.random.randn(n_samples, n_features).astype(np.float32)
+        labels = np.random.randint(0, 10, n_samples).astype(np.int64)
+
+        multi = MultiIndexable(features=features, labels=labels)
+
+        # Expected: features (500 * 4) + labels (1 * 8) = 2008 bytes per sample
+        expected_per_sample = n_features * 4 + 8
+
+        # Estimate
+        estimated_sample_size = estimate_sample_size(multi)
+        assert estimated_sample_size == expected_per_sample
+
+        # Verify with dataset
+        strategy = Streaming(indices=np.arange(100))
+        dataset = scDataset(multi, strategy, batch_size=batch_size, fetch_factor=2)
+
+        expected_batch_size = batch_size * expected_per_sample
+
+        for i, batch in enumerate(dataset):
+            actual = _deep_sizeof(batch)
+            error = abs(actual - expected_batch_size) / expected_batch_size
+            assert error < 0.05, f"Batch {i} size error: {error:.1%}"
+            if i >= 2:
+                break
+
+    def test_fetch_transform_changes_size_correctly(self):
+        """Verify fetch_transform affects memory estimates correctly."""
+        from scdataset import Streaming, scDataset
+        from scdataset.experimental.auto_config import _deep_sizeof
+
+        n_samples = 500
+        n_features = 200
+        batch_size = 32
+
+        data = np.random.randn(n_samples, n_features).astype(np.float32)
+
+        # Transform that converts to float64 (doubles size)
+        def to_float64(sample):
+            return sample.astype(np.float64)
+
+        # Estimate without transform
+        size_original = estimate_sample_size(data)
+        assert size_original == n_features * 4  # float32
+
+        # Estimate with transform
+        size_transformed = estimate_sample_size(data, fetch_transform=to_float64)
+        assert size_transformed == n_features * 8  # float64
+
+        # Verify with dataset
+        strategy = Streaming(indices=np.arange(100))
+        dataset = scDataset(
+            data,
+            strategy,
+            batch_size=batch_size,
+            fetch_factor=2,
+            fetch_transform=to_float64,
+        )
+
+        expected_batch_size = batch_size * n_features * 8  # float64
+
+        for i, batch in enumerate(dataset):
+            actual = _deep_sizeof(batch)
+            error = abs(actual - expected_batch_size) / expected_batch_size
+            assert error < 0.05, f"Batch {i} size error: {error:.1%}"
+            if i >= 2:
+                break
 
 
 if __name__ == "__main__":

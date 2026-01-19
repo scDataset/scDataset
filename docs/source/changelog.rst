@@ -20,6 +20,22 @@ Changelog
   * ``fetch_transform_adata()`` - Transform AnnData/AnnCollection to MultiIndexable
   * ``fetch_transform_hf()`` - Convert HuggingFace sparse data to dense tensors
 
+* **Auto-configuration module** (``scdataset.experimental.auto_config``):
+  
+  * ``suggest_parameters()`` - Automatically suggest optimal ``num_workers``, 
+    ``fetch_factor``, and ``block_size`` based on data and system resources
+
+* **Training experiments module** (``training_experiments/``): Comprehensive framework
+  for benchmarking data loading strategies on the Tahoe-100M dataset:
+  
+  * 6 data loading strategies compared: Streaming, Streaming with Buffer, Block
+    Shuffling (block_size=4), Random Sampling (block_size=1), Block Weighted
+    Sampling (block_size=4), True Weighted Sampling (block_size=1)
+  * 4 classification tasks: Cell line, Drug, MOA broad, MOA fine
+  * Linear model to avoid confounding effects from model selection
+  * Balanced weight computation with min_count_baseline to prevent extreme
+    reweighting of rare (cell_line, drug) combinations
+
 **Bug Fixes**
 ~~~~~~~~~~~~~
 
@@ -40,20 +56,6 @@ Changelog
 
 **Added**
 ~~~~~~~~~
-
-* **Auto-configuration module** (``auto_config.py``):
-  
-  * ``suggest_parameters()`` - Automatically suggest optimal ``num_workers``, 
-    ``fetch_factor``, and ``block_size`` based on data and system resources
-  * ``estimate_sample_size()`` - Helper function to estimate memory per sample
-    with accurate deep size estimation for complex data structures
-  * Both functions accept ``fetch_transform``, ``batch_transform``, 
-    ``fetch_callback``, and ``batch_callback`` parameters to match scDataset
-    configuration for accurate memory estimation
-  * New ``_deep_sizeof()`` function for recursive memory estimation supporting:
-    NumPy arrays, scipy sparse matrices, PyTorch tensors, pandas DataFrames/Series,
-    AnnData objects (X, obs, obsm, layers), MultiIndexable, and nested structures
-  * Uses ``psutil`` (optional dependency) for accurate memory detection
 
 * **Unstructured data support in MultiIndexable**:
   

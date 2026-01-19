@@ -99,7 +99,7 @@ Key Features
 * **Flexible Sampling**: Multiple sampling strategies for different use cases
 * **PyTorch Compatible**: Works seamlessly with PyTorch DataLoader and multiprocessing
 * **Customizable**: Support for custom fetch/batch callbacks and transforms
-* **Auto-configuration**: Automatic parameter suggestion based on system resources
+* **Auto-configuration**: Automatic parameter suggestion based on system resources (experimental)
 
 Performance Tips
 ----------------
@@ -107,14 +107,15 @@ Performance Tips
 * Use ``block_size > 1`` to read data in contiguous chunks
 * Use ``fetch_factor > 1`` to fetch multiple batches at once for better I/O
 * Use ``num_workers > 0`` in DataLoader for parallel data loading
-* Use ``suggest_parameters()`` to get optimal settings for your system
+* Use ``suggest_parameters()`` to get optimal settings for your system (experimental)
 """
 # See Also
 # --------
 # * :doc:`/api/index` - Complete API reference
 # * :doc:`/examples/index` - Usage examples and tutorials
 
-from .auto_config import (
+# Re-export experimental auto_config functions for convenience
+from .experimental.auto_config import (
     estimate_sample_size,
     suggest_parameters,
 )

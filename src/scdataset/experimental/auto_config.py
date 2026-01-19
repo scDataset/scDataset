@@ -341,7 +341,7 @@ def suggest_parameters(
     --------
     >>> import numpy as np
     >>> from scdataset import scDataset, BlockShuffling
-    >>> from scdataset.auto_config import suggest_parameters
+    >>> from scdataset.experimental import suggest_parameters
     >>> from torch.utils.data import DataLoader
     >>>
     >>> data = np.random.randn(10000, 200)

@@ -51,3 +51,20 @@ Sampling Strategies
    BlockShuffling
    BlockWeightedSampling
    ClassBalancedSampling
+
+Experimental Features
+---------------------
+
+.. warning::
+
+   Features in the experimental module are subject to change and may be
+   modified significantly or removed entirely in future releases.
+
+.. currentmodule:: scdataset.experimental
+
+.. autosummary::
+   :toctree: generated/
+   :nosignatures:
+
+   suggest_parameters
+   estimate_sample_size

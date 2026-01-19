@@ -67,7 +67,7 @@ class TestModuleDocstrings:
 
     def test_auto_config_module_docstrings(self):
         """Test docstrings in the auto_config module."""
-        import scdataset.auto_config as auto_config_module
+        import scdataset.experimental.auto_config as auto_config_module
 
         results = doctest.testmod(
             auto_config_module,
