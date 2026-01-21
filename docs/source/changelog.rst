@@ -26,15 +26,15 @@ Changelog
     ``fetch_factor``, and ``block_size`` based on data and system resources
 
 * **Training experiments module** (``training_experiments/``): Comprehensive framework
-  for benchmarking data loading strategies on the Tahoe-100M dataset:
+  for benchmarking data loading strategies on the Tahoe-100M dataset
+
+* **Benchmark plotting utilities** (``benchmarks/plot_utils.py``): Plotting functions for visualizing benchmark results:
   
-  * 6 data loading strategies compared: Streaming, Streaming with Buffer, Block
-    Shuffling (block_size=4), Random Sampling (block_size=1), Block Weighted
-    Sampling (block_size=4), True Weighted Sampling (block_size=1)
-  * 4 classification tasks: Cell line, Drug, MOA broad, MOA fine
-  * Linear model to avoid confounding effects from model selection
-  * Balanced weight computation with min_count_baseline to prevent extreme
-    reweighting of rare (cell_line, drug) combinations
+  * ``plot_throughput()`` - Create throughput plots (samples/sec vs block size)
+  * ``plot_batch_entropy()`` - Create batch entropy plots for shuffling quality analysis
+  * ``plot_block_size_by_fetch_factor()`` - General-purpose plotting function
+  * ``generate_all_benchmark_plots()`` - Generate all standard plots at once
+  * Interactive Jupyter notebook (``benchmarks/plots.ipynb``) for plot generation
 
 **Bug Fixes**
 ~~~~~~~~~~~~~

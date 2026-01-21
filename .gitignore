@@ -175,6 +175,9 @@ cython_debug/
 
 no_commit/*
 
+*.err
+*.out
+
 FROM_USER.md
 TO_USER.md
 PROJECT.md

@@ -194,8 +194,12 @@ def fetch_transform_adata(batch, columns: Optional[List[str]] = None):
     except ImportError:
         sp = None
 
-    # Materialize the AnnData batch in memory
-    batch = batch.to_memory()
+    # Materialize the AnnData or AnnCollection batch in memory
+    # AnnCollection has to_adata(), AnnData has to_memory()
+    if hasattr(batch, "to_adata"):
+        batch = batch.to_adata()
+    elif hasattr(batch, "to_memory"):
+        batch = batch.to_memory()
 
     X = batch.X
     # Densify if X is a sparse matrix
@@ -332,7 +336,10 @@ def load_config(config_path: str) -> dict:
 
 
 def evaluate_loader(
-    loader, test_time_seconds: int = 120, description: str = "Testing loader"
+    loader,
+    test_time_seconds: int = 120,
+    description: str = "Testing loader",
+    warm_up_seconds: int = 30,
 ) -> dict:
     """
     Evaluate the performance of a data loader for a specified duration.
@@ -350,6 +357,8 @@ def evaluate_loader(
         Duration of the test in seconds (after warm-up).
     description : str, default="Testing loader"
         Description shown in the progress bar.
+    warm_up_seconds : int, default=30
+        Duration of warm-up period in seconds. Set to 0 to skip warm-up.
 
     Returns
     -------
@@ -371,11 +380,12 @@ def evaluate_loader(
 
     Notes
     -----
-    The function includes a 30-second warm-up period before measuring
+    The function includes a warm-up period before measuring
     performance to allow for JIT compilation and cache warming.
+    Set warm_up_seconds=0 to skip warm-up.
 
-    Entropy calculation is only performed if batches have an `.obs['plate']`
-    attribute, which is specific to AnnData-based datasets.
+    Entropy calculation is performed if batches have plate information,
+    either via `.obs['plate']` (AnnData) or `batch['plate']` (scDataset).
     """
     gc.collect()
 
@@ -384,22 +394,49 @@ def evaluate_loader(
 
     pbar = tqdm(desc=f"{description} (for {test_time_seconds}s)")
 
-    # Initialize warm-up timer
-    warm_up_seconds = 30
+    # Initialize timing - handle both warm-up and no warm-up cases
     warm_up_start = time.perf_counter()
     warm_up_end = warm_up_start + warm_up_seconds
-    is_warming_up = True
+    is_warming_up = warm_up_seconds > 0
+
+    # Initialize start_time early to handle edge cases where data exhausts during warm-up
+    start_time = warm_up_start
+    end_time = start_time + test_time_seconds
+
+    if not is_warming_up:
+        # No warm-up, start timing immediately
+        start_time = time.perf_counter()
+        end_time = start_time + test_time_seconds
 
     for i, batch in enumerate(loader):
         # Handle different batch structures
+        plates_data = None
+
         if hasattr(batch, "X"):
-            # AnnCollection batch
+            # AnnCollection batch (from AnnLoader)
             batch_size = batch.X.shape[0]
-            if not is_warming_up:
-                # Collect plate info for entropy calculation
-                batch_plates.append(batch.obs["plate"].values)
+            if hasattr(batch, "obs") and "plate" in batch.obs:
+                plates_data = batch.obs["plate"].values
+        elif hasattr(batch, "__getitem__"):
+            # Dict-like batch (dict or MultiIndexable from scDataset with fetch_transform_adata)
+            try:
+                X = batch["X"]
+                batch_size = X.shape[0] if hasattr(X, "shape") else len(X)
+                try:
+                    plates_data = batch["plate"]
+                    if hasattr(plates_data, "values"):
+                        plates_data = plates_data.values
+                except (KeyError, IndexError, TypeError):
+                    plates_data = None
+            except (KeyError, IndexError, TypeError):
+                # Not a dict-like with X, try shape attribute
+                batch_size = batch.shape[0] if hasattr(batch, "shape") else len(batch)
         else:
             batch_size = batch.shape[0] if hasattr(batch, "shape") else len(batch)
+
+        if not is_warming_up and plates_data is not None:
+            # Collect plate info for entropy calculation
+            batch_plates.append(plates_data)
 
         current_time = time.perf_counter()
 

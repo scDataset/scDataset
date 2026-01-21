@@ -1,0 +1,302 @@
+Starting data loader performance evaluation using config: experiments/high_throughput_eval_anncollection_random.yaml
+Using collection type: anncollection
+Testing modes: random
+Loading AnnData files...
+Created AnnCollection with 100648790 observations and 62710 variables.
+
+Testing AnnLoader in random sampling mode (shuffle=True, drop_last=True)...
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+
+Testing scDataset with BlockShuffling strategy (random mode)...
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+Updated results saved to ./experiments/high_throughput_eval_anncollection_random.csv
+
+===== PERFORMANCE RESULTS =====
+       mode     loader collection_type  batch_size  block_size  fetch_factor  num_workers  samples_per_second     elapsed
+0    random  AnnLoader   anncollection          64         NaN           NaN          NaN           19.542629  121.171008
+1    random  scDataset   anncollection          64         1.0           1.0          4.0           73.927014  125.529214
+2    random  scDataset   anncollection          64         1.0           1.0          8.0          147.008466  125.815883
+3    random  scDataset   anncollection          64         1.0           1.0         12.0          222.538975  124.238912
+4    random  scDataset   anncollection          64         1.0           1.0         16.0          289.946809  124.271069
+5    random  scDataset   anncollection          64         1.0           4.0          4.0          238.700747  124.674935
+6    random  scDataset   anncollection          64         1.0           4.0          8.0          476.296688  125.098498
+7    random  scDataset   anncollection          64         1.0           4.0         12.0          715.387522  124.620569
+8    random  scDataset   anncollection          64         1.0           4.0         16.0          942.944748  126.039198
+9    random  scDataset   anncollection          64         1.0          16.0          4.0          552.402127  126.400672
+10   random  scDataset   anncollection          64         1.0          16.0          8.0         1082.747397  128.680060
+11   random  scDataset   anncollection          64         1.0          16.0         12.0         1617.361773  130.503888
+12   random  scDataset   anncollection          64         1.0          16.0         16.0         2146.578102  127.160526
+13   random  scDataset   anncollection          64         1.0          64.0          4.0          917.471327  125.074208
+14   random  scDataset   anncollection          64         1.0          64.0          8.0         1662.464085  130.890046
+15   random  scDataset   anncollection          64         1.0          64.0         12.0         2510.199454  131.737739
+16   random  scDataset   anncollection          64         1.0          64.0         16.0         2901.196971  137.366750
+17   random  scDataset   anncollection          64         1.0         128.0          4.0          928.600771  141.218922
+18   random  scDataset   anncollection          64         1.0         128.0          8.0         1769.008417  148.223150
+19   random  scDataset   anncollection          64         1.0         128.0         12.0         2441.462898  143.651579
+20   random  scDataset   anncollection          64         1.0         128.0         16.0         2710.924372  151.682579
+21   random  scDataset   anncollection          64         1.0         256.0          4.0         1037.060217  126.449745
+22   random  scDataset   anncollection          64         1.0         256.0          8.0         1970.987295  133.033836
+23   random  scDataset   anncollection          64         1.0         256.0         12.0         2462.283400  159.721663
+24   random  scDataset   anncollection          64         1.0         256.0         16.0         3009.932551  148.457812
+25   random  scDataset   anncollection          64         4.0           1.0          4.0          106.809597  122.835404
+26   random  scDataset   anncollection          64         4.0           1.0          8.0          209.439526  123.147719
+27   random  scDataset   anncollection          64         4.0           1.0         12.0          330.005000  122.955713
+28   random  scDataset   anncollection          64         4.0           1.0         16.0          419.923000  124.365658
+29   random  scDataset   anncollection          64         4.0           4.0          4.0          292.769780  126.133237
+30   random  scDataset   anncollection          64         4.0           4.0          8.0          585.667411  125.996425
+31   random  scDataset   anncollection          64         4.0           4.0         12.0          864.436599  124.603702
+32   random  scDataset   anncollection          64         4.0           4.0         16.0         1158.183621  123.835286
+33   random  scDataset   anncollection          64         4.0          16.0          4.0          933.096092  127.369519
+34   random  scDataset   anncollection          64         4.0          16.0          8.0         1880.977634  124.428912
+35   random  scDataset   anncollection          64         4.0          16.0         12.0         2753.136579  124.994889
+36   random  scDataset   anncollection          64         4.0          16.0         16.0         3551.230935  124.585533
+37   random  scDataset   anncollection          64         4.0          64.0          4.0         2031.975152  127.529119
+38   random  scDataset   anncollection          64         4.0          64.0          8.0         4220.725958  123.231881
+39   random  scDataset   anncollection          64         4.0          64.0         12.0         4361.394707  120.739359
+40   random  scDataset   anncollection          64         4.0          64.0         16.0         4305.335487  121.077672
+41   random  scDataset   anncollection          64         4.0         128.0          4.0         2604.930516  125.841360
+42   random  scDataset   anncollection          64         4.0         128.0          8.0         4444.407639  120.773800
+43   random  scDataset   anncollection          64         4.0         128.0         12.0         4413.008801  121.140026
+44   random  scDataset   anncollection          64         4.0         128.0         16.0         4242.216082  126.137846
+45   random  scDataset   anncollection          64         4.0         256.0          4.0         2994.376090  125.932077
+46   random  scDataset   anncollection          64         4.0         256.0          8.0         4018.507274  135.325872
+47   random  scDataset   anncollection          64         4.0         256.0         12.0         4266.525323  121.399022
+48   random  scDataset   anncollection          64         4.0         256.0         16.0         3725.303354  142.077020
+49   random  scDataset   anncollection          64        16.0           1.0          4.0          235.746821  122.164956
+50   random  scDataset   anncollection          64        16.0           1.0          8.0          469.535013  122.265642
+51   random  scDataset   anncollection          64        16.0           1.0         12.0          689.534636  122.146148
+52   random  scDataset   anncollection          64        16.0           1.0         16.0          922.752872  122.069520
+53   random  scDataset   anncollection          64        16.0           4.0          4.0          419.610604  122.322934
+54   random  scDataset   anncollection          64        16.0           4.0          8.0          812.675089  123.641048
+55   random  scDataset   anncollection          64        16.0           4.0         12.0         1229.374410  123.015412
+56   random  scDataset   anncollection          64        16.0           4.0         16.0         1634.316420  123.197685
+57   random  scDataset   anncollection          64        16.0          16.0          4.0         1098.168294  123.959142
+58   random  scDataset   anncollection          64        16.0          16.0          8.0         2236.997689  124.538350
+59   random  scDataset   anncollection          64        16.0          16.0         12.0         3264.751172  123.128526
+60   random  scDataset   anncollection          64        16.0          16.0         16.0         3922.420781  123.760307
+61   random  scDataset   anncollection          64        16.0          64.0          4.0         3293.339022  122.875901
+62   random  scDataset   anncollection          64        16.0          64.0          8.0         4336.112609  124.218176
+63   random  scDataset   anncollection          64        16.0          64.0         12.0         4384.314702  121.086198
+64   random  scDataset   anncollection          64        16.0          64.0         16.0         4407.530534  121.522924
+65   random  scDataset   anncollection          64        16.0         128.0          4.0         4485.520447  123.119715
+66   random  scDataset   anncollection          64        16.0         128.0          8.0         4576.490770  120.840187
+67   random  scDataset   anncollection          64        16.0         128.0         12.0         4562.999081  121.197482
+68   random  scDataset   anncollection          64        16.0         128.0         16.0         4551.874669  121.493679
+69   random  scDataset   anncollection          64        16.0         256.0          4.0         4510.845768  122.641302
+70   random  scDataset   anncollection          64        16.0         256.0          8.0         4666.611677  120.865424
+71   random  scDataset   anncollection          64        16.0         256.0         12.0         4399.680070  127.456540
+72   random  scDataset   anncollection          64        16.0         256.0         16.0         4503.926419  121.650300
+73   random  scDataset   anncollection          64        64.0           1.0          4.0          856.881351  120.698157
+74   random  scDataset   anncollection          64        64.0           1.0          8.0          961.664759  121.655701
+75   random  scDataset   anncollection          64        64.0           1.0         12.0         1446.771878  121.119302
+76   random  scDataset   anncollection          64        64.0           1.0         16.0         1998.004852  121.497202
+77   random  scDataset   anncollection          64        64.0           4.0          4.0          913.953053  122.194460
+78   random  scDataset   anncollection          64        64.0           4.0          8.0         1788.083357  121.444003
+79   random  scDataset   anncollection          64        64.0           4.0         12.0         2604.145745  121.701330
+80   random  scDataset   anncollection          64        64.0           4.0         16.0         3973.813717  121.290034
+81   random  scDataset   anncollection          64        64.0          16.0          4.0         1630.449916  122.901046
+82   random  scDataset   anncollection          64        64.0          16.0          8.0         3053.130478  123.424794
+83   random  scDataset   anncollection          64        64.0          16.0         12.0         4162.137096  123.075235
+84   random  scDataset   anncollection          64        64.0          16.0         16.0         4174.374578  122.177823
+85   random  scDataset   anncollection          64        64.0          64.0          4.0         3814.434270  123.455267
+86   random  scDataset   anncollection          64        64.0          64.0          8.0         4418.634781  122.144514
+87   random  scDataset   anncollection          64        64.0          64.0         12.0         4475.212391  121.172350
+88   random  scDataset   anncollection          64        64.0          64.0         16.0         4440.261626  121.318977
+89   random  scDataset   anncollection          64        64.0         128.0          4.0         4543.424273  120.635003
+90   random  scDataset   anncollection          64        64.0         128.0          8.0         4641.047415  120.938217
+91   random  scDataset   anncollection          64        64.0         128.0         12.0         4595.332760  121.180343
+92   random  scDataset   anncollection          64        64.0         128.0         16.0         4624.750290  121.475099
+93   random  scDataset   anncollection          64        64.0         256.0          4.0         4642.762664  120.659194
+94   random  scDataset   anncollection          64        64.0         256.0          8.0         4653.214561  120.938330
+95   random  scDataset   anncollection          64        64.0         256.0         12.0         4686.431065  121.282911
+96   random  scDataset   anncollection          64        64.0         256.0         16.0         4672.278431  121.650284
+97   random  scDataset   anncollection          64       128.0           1.0          4.0          639.991150  121.301677
+98   random  scDataset   anncollection          64       128.0           1.0          8.0         1656.935097  120.936541
+99   random  scDataset   anncollection          64       128.0           1.0         12.0         1884.549303  121.068735
+100  random  scDataset   anncollection          64       128.0           1.0         16.0         2302.445241  121.248486
+101  random  scDataset   anncollection          64       128.0           4.0          4.0         1339.109403  121.633079
+102  random  scDataset   anncollection          64       128.0           4.0          8.0         2700.482515  121.175382
+103  random  scDataset   anncollection          64       128.0           4.0         12.0         3869.225774  121.293516
+104  random  scDataset   anncollection          64       128.0           4.0         16.0         4132.595505  121.182922
+105  random  scDataset   anncollection          64       128.0          16.0          4.0         2214.516372  122.190110
+106  random  scDataset   anncollection          64       128.0          16.0          8.0         4286.549100  121.832268
+107  random  scDataset   anncollection          64       128.0          16.0         12.0         4367.456323  121.875976
+108  random  scDataset   anncollection          64       128.0          16.0         16.0         4365.578241  121.195400
+109  random  scDataset   anncollection          64       128.0          64.0          4.0         4220.053872  122.584217
+110  random  scDataset   anncollection          64       128.0          64.0          8.0         4539.840540  120.800719
+111  random  scDataset   anncollection          64       128.0          64.0         12.0         4518.906642  121.020424
+112  random  scDataset   anncollection          64       128.0          64.0         16.0         4501.490798  121.332248
+113  random  scDataset   anncollection          64       128.0         128.0          4.0         4462.589502  124.813631
+114  random  scDataset   anncollection          64       128.0         128.0          8.0         4639.394455  120.857152
+115  random  scDataset   anncollection          64       128.0         128.0         12.0         4596.705447  121.311232
+116  random  scDataset   anncollection          64       128.0         128.0         16.0         4661.272314  121.594269
+117  random  scDataset   anncollection          64       128.0         256.0          4.0         4666.282671  120.654499
+118  random  scDataset   anncollection          64       128.0         256.0          8.0         4563.719358  125.778111
+119  random  scDataset   anncollection          64       128.0         256.0         12.0         4685.968727  121.294877
+120  random  scDataset   anncollection          64       128.0         256.0         16.0         4647.679638  121.633168
+121  random  scDataset   anncollection          64       256.0           1.0          4.0          705.932377  120.850102
+122  random  scDataset   anncollection          64       256.0           1.0          8.0         1420.354618  120.893753
+123  random  scDataset   anncollection          64       256.0           1.0         12.0         2064.690373  121.292763
+124  random  scDataset   anncollection          64       256.0           1.0         16.0         2688.293412  121.415318
+125  random  scDataset   anncollection          64       256.0           4.0          4.0         1853.965087  120.994727
+126  random  scDataset   anncollection          64       256.0           4.0          8.0         3653.513363  121.097682
+127  random  scDataset   anncollection          64       256.0           4.0         12.0         4096.585867  120.935827
+128  random  scDataset   anncollection          64       256.0           4.0         16.0         4147.140284  121.251746
+129  random  scDataset   anncollection          64       256.0          16.0          4.0         3238.760819  121.389637
+130  random  scDataset   anncollection          64       256.0          16.0          8.0         4426.299514  120.776282
+131  random  scDataset   anncollection          64       256.0          16.0         12.0         4469.290661  120.989222
+132  random  scDataset   anncollection          64       256.0          16.0         16.0         4453.337722  121.652575
+133  random  scDataset   anncollection          64       256.0          64.0          4.0         4539.150910  120.790873
+134  random  scDataset   anncollection          64       256.0          64.0          8.0         4508.255332  123.237031
+135  random  scDataset   anncollection          64       256.0          64.0         12.0         4565.140996  121.140618
+136  random  scDataset   anncollection          64       256.0          64.0         16.0         4567.812185  121.293954
+137  random  scDataset   anncollection          64       256.0         128.0          4.0         4587.830137  120.597316
+138  random  scDataset   anncollection          64       256.0         128.0          8.0         4576.242224  123.755687
+139  random  scDataset   anncollection          64       256.0         128.0         12.0         4622.860273  121.220190
+140  random  scDataset   anncollection          64       256.0         128.0         16.0         4669.687670  121.567017
+141  random  scDataset   anncollection          64       256.0         256.0          4.0         4454.998290  126.089386
+142  random  scDataset   anncollection          64       256.0         256.0          8.0         4658.474359  120.911688
+143  random  scDataset   anncollection          64       256.0         256.0         12.0         4687.922688  121.244320
+144  random  scDataset   anncollection          64       256.0         256.0         16.0         4650.064127  121.612086

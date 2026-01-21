@@ -145,4 +145,52 @@ Results are saved as CSV with columns:
 - `total_time`: Total evaluation time
 - `samples_per_second`: Throughput
 - `batches_processed`: Number of batches evaluated
-- `mean_batch_time`: Average time per batch
+- `mean_batch_time`: Average time per batch- `avg_batch_entropy`: Average batch entropy (measures cross-source mixing)
+- `std_batch_entropy`: Standard deviation of batch entropy
+
+## Plotting Results
+
+The benchmark includes plotting utilities to generate publication-quality figures.
+
+### Using the Notebook
+
+Open and run `plots.ipynb` to interactively generate all plots:
+
+```bash
+jupyter notebook plots.ipynb
+```
+
+### Using the Command Line
+
+Generate all standard plots at once:
+
+```bash
+python plot_utils.py --generate-all
+```
+
+### Programmatic Usage
+
+```python
+from plot_utils import plot_throughput, plot_batch_entropy
+
+# Throughput plot
+plot_throughput(
+    csv_path='experiments/block_size_fetch_factor_eval_anncollection_random.csv',
+    title='scDataset Throughput with AnnData',
+    save_path='figures/throughput_anndata.pdf'
+)
+
+# Batch entropy plot
+plot_batch_entropy(
+    csv_path='experiments/block_size_fetch_factor_eval_anncollection_random.csv',
+    title='scDataset Batch Entropy',
+    save_path='figures/batch_entropy_anndata.pdf'
+)
+```
+
+### Available Plot Functions
+
+- `plot_throughput()`: Create throughput plots (samples/sec vs block size)
+- `plot_batch_entropy()`: Create batch entropy plots (shuffling quality analysis)
+- `plot_block_size_by_fetch_factor()`: General-purpose plotting function
+- `generate_all_benchmark_plots()`: Generate all standard plots at once

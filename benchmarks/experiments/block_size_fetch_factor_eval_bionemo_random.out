@@ -1,0 +1,86 @@
+Starting data loader performance evaluation using config: experiments/block_size_fetch_factor_eval_bionemo_random.yaml
+Using collection type: bionemo
+Testing modes: random
+Loading Bionemo SingleCellMemMapDataset...
+Loaded Bionemo dataset with 100648790 samples.
+
+Testing PyTorch DataLoader with BioNeMo in random sampling mode (shuffle=True)...
+Updated results saved to ./experiments/block_size_fetch_factor_eval_bionemo_random.csv
+
+Testing scDataset with BlockShuffling strategy (random mode)...
+Updated results saved to ./experiments/block_size_fetch_factor_eval_bionemo_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_bionemo_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_bionemo_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_bionemo_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_bionemo_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_bionemo_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_bionemo_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_bionemo_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_bionemo_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_bionemo_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_bionemo_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_bionemo_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_bionemo_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_bionemo_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_bionemo_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_bionemo_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_bionemo_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_bionemo_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_bionemo_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_bionemo_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_bionemo_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_bionemo_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_bionemo_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_bionemo_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_bionemo_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_bionemo_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_bionemo_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_bionemo_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_bionemo_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_bionemo_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_bionemo_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_bionemo_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_bionemo_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_bionemo_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_bionemo_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_bionemo_random.csv
+
+===== PERFORMANCE RESULTS =====
+      mode     loader collection_type  batch_size  block_size  fetch_factor  num_workers  samples_per_second     elapsed
+0   random    BioNeMo         bionemo          64         NaN           NaN            0          194.342641  121.188021
+1   random  scDataset         bionemo          64         1.0           1.0            0          223.369457  120.338745
+2   random  scDataset         bionemo          64         1.0           4.0            0          238.266872  120.604261
+3   random  scDataset         bionemo          64         1.0          16.0            0          237.477936  121.004925
+4   random  scDataset         bionemo          64         1.0          64.0            0          233.228460  123.209663
+5   random  scDataset         bionemo          64         1.0         128.0            0          231.926522  141.562077
+6   random  scDataset         bionemo          64         1.0         256.0            0          230.824115  142.238171
+7   random  scDataset         bionemo          64         4.0           1.0            0          853.303886  120.154146
+8   random  scDataset         bionemo          64         4.0           4.0            0          857.545091  120.082315
+9   random  scDataset         bionemo          64         4.0          16.0            0          825.138717  120.454898
+10  random  scDataset         bionemo          64         4.0          64.0            0          808.730360  121.632629
+11  random  scDataset         bionemo          64         4.0         128.0            0          806.615159  121.951589
+12  random  scDataset         bionemo          64         4.0         256.0            0          795.181704  123.705060
+13  random  scDataset         bionemo          64        16.0           1.0            0         2541.959792  120.096313
+14  random  scDataset         bionemo          64        16.0           4.0            0         2449.060217  120.130978
+15  random  scDataset         bionemo          64        16.0          16.0            0         2386.355797  120.176547
+16  random  scDataset         bionemo          64        16.0          64.0            0         2263.403233  120.399227
+17  random  scDataset         bionemo          64        16.0         128.0            0         2246.649981  120.356977
+18  random  scDataset         bionemo          64        16.0         256.0            0         2191.916348  127.099741
+19  random  scDataset         bionemo          64        64.0           1.0            0         5092.584983  120.093038
+20  random  scDataset         bionemo          64        64.0           4.0            0         4441.410252  120.077176
+21  random  scDataset         bionemo          64        64.0          16.0            0         4533.718050  120.173331
+22  random  scDataset         bionemo          64        64.0          64.0            0         4349.367610  120.558216
+23  random  scDataset         bionemo          64        64.0         128.0            0         4247.399904  120.167635
+24  random  scDataset         bionemo          64        64.0         256.0            0         3995.436069  120.345312
+25  random  scDataset         bionemo          64       128.0           1.0            0         6032.918026  120.087824
+26  random  scDataset         bionemo          64       128.0           4.0            0         5065.954012  120.080048
+27  random  scDataset         bionemo          64       128.0          16.0            0         5121.703394  120.110040
+28  random  scDataset         bionemo          64       128.0          64.0            0         4891.906926  120.100404
+29  random  scDataset         bionemo          64       128.0         128.0            0         4681.346266  120.758425
+30  random  scDataset         bionemo          64       128.0         256.0            0         4655.564666  123.186776
+31  random  scDataset         bionemo          64       256.0           1.0            0         6651.974775  120.082235
+32  random  scDataset         bionemo          64       256.0           4.0            0         5512.996766  120.047957
+33  random  scDataset         bionemo          64       256.0          16.0            0         5617.640637  120.135844
+34  random  scDataset         bionemo          64       256.0          64.0            0         5318.369289  120.121031
+35  random  scDataset         bionemo          64       256.0         128.0            0         5018.647739  120.803856
+36  random  scDataset         bionemo          64       256.0         256.0            0         4984.797253  121.624204

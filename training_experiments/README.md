@@ -63,49 +63,12 @@ weight = total_cells / (n_combinations * count)
 This ensures that rare combinations are upsampled, but not so aggressively as to
 cause memorization issues.
 
-## Directory Structure
+## Installation
 
-```
-training_experiments/
-├── README.md                    # This file
-├── __init__.py                  # Package init
-├── data/
-│   ├── __init__.py
-│   ├── loader.py               # Tahoe dataset loading utilities
-│   └── label_encoder.py        # Label encoding for all 4 tasks
-├── models/
-│   ├── __init__.py
-│   └── linear.py               # Multi-task linear classifier
-├── trainers/
-│   ├── __init__.py
-│   └── multitask.py            # Multi-task trainer
-├── utils/
-│   ├── __init__.py
-│   └── weights.py              # Weight computation utilities
-├── experiments/
-│   ├── __init__.py
-│   ├── base.py                 # Base experiment runner
-│   └── run_all.py              # Run all experiments
-├── configs/
-│   └── default.yaml            # Default configuration
-└── tests/
-    ├── test_weights.py         # Test weight computation
-    ├── test_models.py          # Test model architecture
-    └── test_data_loading.py    # Test data loading strategies
-```
-
-## Usage
-
-### Run a single experiment
+Install the required dependencies:
 
 ```bash
-python -m training_experiments.experiments.run_all --strategy streaming --epochs 10
-```
-
-### Run all experiments
-
-```bash
-python -m training_experiments.experiments.run_all --all --epochs 10
+pip install -r requirements.txt
 ```
 
 ## Dataset
@@ -115,11 +78,142 @@ This module expects the Tahoe-100M dataset in h5ad format at:
 
 Training uses plates 1-13, testing uses plate 14.
 
-## Requirements
+You can modify the path in `configs/default.yaml` or `data/loader.py`.
 
-- PyTorch
-- scDataset
-- anndata
-- scikit-learn
-- numpy
-- pandas
+## Running Experiments
+
+### Run a single experiment
+
+```bash
+python -m training_experiments.experiments.run_all --strategy streaming --epochs 10
+```
+
+Available strategies:
+- `streaming` - Sequential without shuffling
+- `streaming_buffer` - Sequential with buffer shuffling
+- `block_shuffling` - Block shuffling with block_size=4
+- `random` - Random sampling (block_size=1)
+- `weighted_block` - Weighted sampling with block_size=4
+- `weighted_true` - Weighted sampling with block_size=1
+
+### Run all experiments
+
+```bash
+python -m training_experiments.experiments.run_all --all --epochs 10
+```
+
+### Configuration
+
+Modify `configs/default.yaml` for experiment settings:
+
+```yaml
+training:
+  epochs: 10
+  batch_size: 64
+  learning_rate: 0.001
+
+data:
+  fetch_factor: 16
+  num_workers: 0
+```
+
+## Plotting Results
+
+The module includes plotting utilities for visualizing experiment results.
+
+### Using the Notebook
+
+Open and run `notebooks/analyze_results.ipynb` for interactive analysis:
+
+```bash
+jupyter notebook notebooks/analyze_results.ipynb
+```
+
+This notebook provides:
+- Per-task performance comparison (Macro F1-score)
+- Training curves across epochs
+- Time comparison across strategies
+
+### Programmatic Usage
+
+```python
+from training_experiments.analysis.plotting import (
+    plot_comparison,
+    plot_training_curves,
+    plot_time_comparison
+)
+
+# Load results
+import pandas as pd
+df = pd.read_csv('results/summary.csv')
+
+# Create comparison plot (2x2 grid for all tasks)
+fig, axes = plot_comparison(df, title='Strategy Comparison')
+fig.savefig('figures/comparison.pdf')
+
+# Plot training curves for a specific task
+fig, ax = plot_training_curves(results, task='cell_line')
+fig.savefig('figures/training_curves.pdf')
+```
+
+### Available Plot Functions
+
+- `plot_comparison()` - Create 2x2 comparison plot for all tasks
+- `plot_training_curves()` - Plot training curves over epochs
+- `plot_time_comparison()` - Compare training time across strategies
+
+## Directory Structure
+
+```
+training_experiments/
+├── README.md                    # This file
+├── requirements.txt             # Dependencies
+├── __init__.py                  # Package init
+├── analysis/
+│   ├── __init__.py
+│   └── plotting.py             # Plotting utilities
+├── configs/
+│   └── default.yaml            # Default configuration
+├── data/
+│   ├── __init__.py
+│   ├── loader.py               # Tahoe dataset loading utilities
+│   └── label_encoder.py        # Label encoding for all 4 tasks
+├── experiments/
+│   ├── __init__.py
+│   ├── base.py                 # Base experiment runner
+│   └── run_all.py              # Run all experiments
+├── models/
+│   ├── __init__.py
+│   └── linear.py               # Multi-task linear classifier
+├── notebooks/
+│   └── analyze_results.ipynb   # Interactive analysis notebook
+├── tests/
+│   ├── test_data_loading.py    # Test data loading strategies
+│   ├── test_models.py          # Test model architecture
+│   └── test_weights.py         # Test weight computation
+├── trainers/
+│   ├── __init__.py
+│   └── multitask.py            # Multi-task trainer
+└── utils/
+    ├── __init__.py
+    └── weights.py              # Weight computation utilities
+```
+
+## Running Tests
+
+```bash
+pytest training_experiments/tests/ -v
+```
+
+## Reproducing Results
+
+To fully reproduce the results from the paper:
+
+1. **Download the dataset** from the official source
+2. **Update paths** in `configs/default.yaml`
+3. **Run all experiments**:
+   ```bash
+   python -m training_experiments.experiments.run_all --all --epochs 10
+   ```
+4. **Generate plots**:
+   Open `notebooks/analyze_results.ipynb` in Jupyter

@@ -3,8 +3,8 @@ results_path: "./experiments/high_throughput_eval_anncollection_random.csv"
 
 # Test parameters
 batch_sizes: [64]
-block_sizes: [1, 4, 16, 64, 128, 256]
-fetch_factors: [1, 4, 16, 64, 128, 256]
-num_workers_options: [4, 8, 12, 16]
+block_sizes: [4, 8, 16, 32]
+fetch_factors: [4, 8, 16, 32]
+num_workers_options: [8, 12, 16]
 collection_type: "anncollection"
 test_modes: "random"
