@@ -249,3 +249,65 @@ class TestWeightedSamplingWithWeights:
 
         # Should be reasonably close
         assert abs(avg_count - expected) < 100  # Allow some variance
+
+
+class TestLabelEncoder:
+    """Tests for LabelEncoder with bundled mappings."""
+
+    def test_label_encoder_loads_default_mappings(self):
+        """Test that LabelEncoder loads bundled mapping files by default."""
+        from training_experiments.data.label_encoder import LabelEncoder
+
+        encoder = LabelEncoder()
+
+        # Verify mappings are loaded
+        assert len(encoder.cell_line_to_id) > 0
+        assert len(encoder.drug_to_id) > 0
+        assert len(encoder.drug_to_moa_broad) > 0
+        assert len(encoder.drug_to_moa_fine) > 0
+
+        # Verify task dimensions are computed
+        assert encoder.num_cell_lines > 0
+        assert encoder.num_drugs > 0
+        assert encoder.num_moa_broad > 0
+        assert encoder.num_moa_fine > 0
+
+    def test_label_encoder_encode_valid_labels(self):
+        """Test that LabelEncoder encodes valid labels correctly."""
+        from training_experiments.data.label_encoder import LabelEncoder
+
+        encoder = LabelEncoder()
+
+        # Get a valid cell line and drug from the mappings
+        cell_line = list(encoder.cell_line_to_id.keys())[0]
+        drug = list(encoder.drug_to_id.keys())[0]
+
+        # Encode
+        encoded = encoder.encode_labels([cell_line], [drug])
+
+        assert len(encoded) == 1
+        cell_id, drug_id, moa_broad_id, moa_fine_id = encoded[0]
+
+        # All IDs should be valid integers
+        assert isinstance(cell_id, (int, np.integer))
+        assert isinstance(drug_id, (int, np.integer))
+        assert isinstance(moa_broad_id, (int, np.integer))
+        assert isinstance(moa_fine_id, (int, np.integer))
+
+    def test_label_encoder_task_dimensions(self):
+        """Test that task dimensions are correctly computed."""
+        from training_experiments.data.label_encoder import LabelEncoder
+
+        encoder = LabelEncoder()
+
+        task_dims = encoder.get_task_dims()
+
+        assert "cell_line" in task_dims
+        assert "drug" in task_dims
+        assert "moa_broad" in task_dims
+        assert "moa_fine" in task_dims
+
+        assert task_dims["cell_line"] == encoder.num_cell_lines
+        assert task_dims["drug"] == encoder.num_drugs
+        assert task_dims["moa_broad"] == encoder.num_moa_broad
+        assert task_dims["moa_fine"] == encoder.num_moa_fine

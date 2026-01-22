@@ -56,13 +56,14 @@ class TahoeDataLoader:
     data_dir : str
         Directory containing h5ad files
     label_dir : str, optional
-        Directory containing label mapping pickle files
+        Directory containing label mapping pickle files.
+        If None, uses the default mappings directory within training_experiments.
     """
 
     def __init__(
         self,
         data_dir: str = "/home/kidara/raid/volume/vevo-data/2025-02-25/original_h5ad",
-        label_dir: str = "/home/kidara/raid/volume/scdataset_private",
+        label_dir: str = None,
     ):
         """
         Initialize the Tahoe data loader.
@@ -71,8 +72,9 @@ class TahoeDataLoader:
         ----------
         data_dir : str
             Directory containing h5ad files
-        label_dir : str
-            Directory containing label mapping pickle files
+        label_dir : str, optional
+            Directory containing label mapping pickle files.
+            If None, uses the default mappings directory.
         """
         self.data_dir = data_dir
         self.label_dir = label_dir
@@ -287,7 +289,7 @@ class TahoeDataLoader:
         # Determine train workers based on strategy
         # Streaming with shuffle=False doesn't need multiprocessing
         if strategy_name == STRATEGY_STREAMING:
-            train_workers = 0
+            train_workers = 1
         else:
             train_workers = num_workers
 
@@ -355,7 +357,7 @@ class TahoeDataLoader:
         test_loader = DataLoader(
             test_dataset,
             batch_size=None,  # scDataset handles batching
-            num_workers=0,
+            num_workers=train_workers,
         )
 
         if verbose:
@@ -373,7 +375,7 @@ def create_dataloaders(
     fetch_factor: int = 16,
     num_workers: int = 12,
     data_dir: str = "/home/kidara/raid/volume/vevo-data/2025-02-25/original_h5ad",
-    label_dir: str = "/home/kidara/raid/volume/scdataset_private",
+    label_dir: str = None,
     min_count_baseline: int = 1000,
     verbose: bool = True,
 ) -> Tuple[DataLoader, DataLoader, LabelEncoder, int]:
@@ -393,8 +395,9 @@ def create_dataloaders(
         Number of workers for DataLoader
     data_dir : str
         Directory containing h5ad files
-    label_dir : str
-        Directory containing label mapping pickle files
+    label_dir : str, optional
+        Directory containing label mapping pickle files.
+        If None, uses the default mappings directory.
     min_count_baseline : int
         Minimum count baseline for weight computation
     verbose : bool

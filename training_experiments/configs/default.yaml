@@ -4,12 +4,13 @@
 # Dataset paths
 data:
   h5ad_dir: "/home/kidara/raid/volume/vevo-data/2025-02-25/original_h5ad"
-  label_dir: "/home/kidara/raid/volume/scdataset_private"
+  # label_dir is optional - defaults to training_experiments/data/mappings/
+  # label_dir: null
 
 # Training parameters
 training:
   batch_size: 64
-  num_epochs: 10
+  num_epochs: 1
   learning_rate: 0.001
 
 # scDataset parameters

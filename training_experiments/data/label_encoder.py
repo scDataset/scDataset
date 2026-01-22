@@ -40,16 +40,20 @@ class LabelEncoder:
         Number of fine-grained MOA categories
     """
 
-    def __init__(self, data_dir: str = "/home/kidara/raid/volume/scdataset_private"):
+    # Default to the mappings directory within training_experiments
+    _DEFAULT_DATA_DIR = os.path.join(os.path.dirname(__file__), "mappings")
+
+    def __init__(self, data_dir: str = None):
         """
         Initialize label encoder with pickle files.
 
         Parameters
         ----------
-        data_dir : str
-            Directory containing pickle files with label mappings
+        data_dir : str, optional
+            Directory containing pickle files with label mappings.
+            If None, uses the default mappings directory within training_experiments.
         """
-        self.data_dir = data_dir
+        self.data_dir = data_dir if data_dir is not None else self._DEFAULT_DATA_DIR
 
         # Load mapping dictionaries
         self.cell_line_to_id = self._load_pickle("cell_line_code_map.pkl")

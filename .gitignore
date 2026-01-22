@@ -183,3 +183,7 @@ TO_USER.md
 PROJECT.md
 .github/skills
 scDataset.code-workspace
+
+# PyTorch model files
+*.pt
+*.pth

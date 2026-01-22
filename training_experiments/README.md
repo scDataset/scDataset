@@ -213,7 +213,7 @@ To fully reproduce the results from the paper:
 2. **Update paths** in `configs/default.yaml`
 3. **Run all experiments**:
    ```bash
-   python -m training_experiments.experiments.run_all --all --epochs 10
+   python -m training_experiments.experiments.run_all --all --epochs 1
    ```
 4. **Generate plots**:
    Open `notebooks/analyze_results.ipynb` in Jupyter

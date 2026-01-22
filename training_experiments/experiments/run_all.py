@@ -11,12 +11,18 @@ Strategies:
 4. Random Sampling - Full shuffling (block_size=1)
 5. Block Weighted Sampling - Weighted with block_size=4
 6. True Weighted Sampling - Weighted with block_size=1
+
+Usage:
+    python -m training_experiments.experiments.run_all --all --epochs 1
 """
 
 import argparse
 import json
+import logging
 import os
+import sys
 import time
+import warnings
 from typing import Any, Dict, Optional
 
 import torch
@@ -31,6 +37,34 @@ from training_experiments.trainers.multitask import (
     save_results,
 )
 
+# Suppress RuntimeWarning about sys.modules (harmless, occurs with python -m)
+warnings.filterwarnings(
+    "ignore",
+    message=".*found in sys.modules after import.*",
+    category=RuntimeWarning,
+)
+
+
+def setup_logging(verbose: bool = True) -> logging.Logger:
+    """Set up logging configuration."""
+    logger = logging.getLogger("training_experiments")
+    logger.setLevel(logging.DEBUG if verbose else logging.INFO)
+
+    # Remove existing handlers
+    logger.handlers = []
+
+    # Console handler with formatting
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setLevel(logging.DEBUG if verbose else logging.INFO)
+    formatter = logging.Formatter(
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+
+    return logger
+
 
 def run_experiment(
     strategy_name: str,
@@ -44,6 +78,7 @@ def run_experiment(
     save_dir: Optional[str] = None,
     log_interval: int = 100,
     verbose: bool = True,
+    logger: Optional[logging.Logger] = None,
 ) -> Dict[str, Any]:
     """
     Run a single experiment with specified strategy.
@@ -73,16 +108,23 @@ def run_experiment(
         Print progress every N batches
     verbose : bool
         Whether to print progress information
+    logger : logging.Logger, optional
+        Logger instance. If None, uses print statements.
 
     Returns
     -------
     dict
         Experiment results
     """
-    if verbose:
-        print(f"\n{'='*60}")
-        print(f"Running experiment: {strategy_name}")
-        print(f"{'='*60}")
+    # Use logger if provided, otherwise fall back to print
+    if logger is None:
+        logger = logging.getLogger("training_experiments")
+        if not logger.handlers:
+            logger = setup_logging(verbose)
+
+    logger.info("=" * 60)
+    logger.info(f"Running experiment: {strategy_name}")
+    logger.info("=" * 60)
 
     # Create experiment directory
     if save_dir:
@@ -96,8 +138,7 @@ def run_experiment(
 
     try:
         # Create data loaders
-        if verbose:
-            print("Creating data loaders...")
+        logger.info("Creating data loaders...")
 
         train_loader, test_loader, label_encoder, feature_dim = create_dataloaders(
             strategy_name=strategy_name,
@@ -111,25 +152,21 @@ def run_experiment(
         # Get task dimensions
         task_dims = label_encoder.get_task_dims()
 
-        if verbose:
-            print(f"Task dimensions: {task_dims}")
-            print(f"Feature dimension: {feature_dim}")
+        logger.info(f"Task dimensions: {task_dims}")
+        logger.info(f"Feature dimension: {feature_dim}")
 
         # Create model
-        if verbose:
-            print("Creating multi-task linear model...")
+        logger.info("Creating multi-task linear model...")
 
         model = create_model(input_dim=feature_dim, task_dims=task_dims)
 
-        if verbose:
-            print(f"Model parameters: {model.count_parameters():,}")
+        logger.info(f"Model parameters: {model.count_parameters():,}")
 
         # Create trainer
         trainer = MultiTaskTrainer(model=model, device=device)
 
         # Train model
-        if verbose:
-            print("Starting training...")
+        logger.info("Starting training...")
 
         training_results = trainer.train(
             train_loader=train_loader,
@@ -141,8 +178,7 @@ def run_experiment(
         )
 
         # Final evaluation
-        if verbose:
-            print("\nPerforming final evaluation...")
+        logger.info("Performing final evaluation...")
 
         final_metrics = trainer.evaluate(test_loader)
 
@@ -182,19 +218,18 @@ def run_experiment(
             with open(json_file, "w") as f:
                 json.dump(json_results, f, indent=2, default=str)
 
-        if verbose:
-            print("\nExperiment completed successfully!")
-            print(f"Total time: {experiment_time:.1f} seconds")
-            print("\nFinal metrics:")
-            for task_name in TASK_NAMES:
-                acc = final_metrics.get(f"{task_name}_accuracy", 0)
-                f1 = final_metrics.get(f"{task_name}_f1_macro", 0)
-                print(f"  {task_name}: Acc={acc:.4f}, F1={f1:.4f}")
+        logger.info("Experiment completed successfully!")
+        logger.info(f"Total time: {experiment_time:.1f} seconds")
+        logger.info("Final metrics:")
+        for task_name in TASK_NAMES:
+            acc = final_metrics.get(f"{task_name}_accuracy", 0)
+            f1 = final_metrics.get(f"{task_name}_f1_macro", 0)
+            logger.info(f"  {task_name}: Acc={acc:.4f}, F1={f1:.4f}")
 
         return results
 
     except Exception as e:
-        print(f"Error in experiment: {str(e)}")
+        logger.error(f"Error in experiment: {str(e)}")
         import traceback
 
         traceback.print_exc()
@@ -369,16 +404,19 @@ def main():
 
     args = parser.parse_args()
 
+    # Set up logging
+    logger = setup_logging(verbose=True)
+
     # Check device availability
     if args.device == "cuda" and not torch.cuda.is_available():
-        print("CUDA not available, switching to CPU")
+        logger.warning("CUDA not available, switching to CPU")
         args.device = "cpu"
 
-    print(f"Using device: {args.device}")
+    logger.info(f"Using device: {args.device}")
 
     if args.all or args.strategy is None:
         # Run all strategies
-        print("Running all strategies...")
+        logger.info("Running all strategies...")
         results = run_all_experiments(
             num_epochs=args.epochs,
             batch_size=args.batch_size,
@@ -390,19 +428,19 @@ def main():
             save_dir=args.save_dir,
         )
 
-        print("\n" + "=" * 60)
-        print("ALL EXPERIMENTS COMPLETED")
-        print("=" * 60)
+        logger.info("=" * 60)
+        logger.info("ALL EXPERIMENTS COMPLETED")
+        logger.info("=" * 60)
 
         for strategy, r in results.items():
             status = r.get("status", "unknown")
             if status == "success":
-                print(f"\n{strategy}:")
+                logger.info(f"{strategy}:")
                 for task in TASK_NAMES:
                     acc = r["final_metrics"].get(f"{task}_accuracy", 0)
-                    print(f"  {task}: {acc:.4f}")
+                    logger.info(f"  {task}: {acc:.4f}")
             else:
-                print(f"\n{strategy}: FAILED")
+                logger.warning(f"{strategy}: FAILED")
     else:
         # Run single strategy
         run_experiment(
@@ -416,6 +454,7 @@ def main():
             device=args.device,
             save_dir=args.save_dir,
             log_interval=args.log_interval,
+            logger=logger,
         )
 
 

@@ -1,0 +1,43 @@
+{
+  "status": "success",
+  "experiment_config": {
+    "strategy_name": "streaming",
+    "num_epochs": 1,
+    "batch_size": 64,
+    "learning_rate": 0.001,
+    "fetch_factor": 16,
+    "num_workers": 12,
+    "min_count_baseline": 1000,
+    "device": "cuda"
+  },
+  "data_info": {
+    "task_dims": {
+      "cell_line": 50,
+      "drug": 380,
+      "moa_broad": 4,
+      "moa_fine": 27
+    },
+    "feature_dim": 62710
+  },
+  "final_metrics": {
+    "total_loss": 2570.4212687786826,
+    "time": 3080.0736327171326,
+    "cell_line_loss": 0.693303232170403,
+    "cell_line_accuracy": 0.9625966779805996,
+    "cell_line_f1_macro": 0.914202358973752,
+    "cell_line_f1_weighted": 0.9625544771082704,
+    "drug_loss": 2131.047602812307,
+    "drug_accuracy": 0.0023711397455300864,
+    "drug_f1_macro": 0.0013012132102480165,
+    "drug_f1_weighted": 0.0019873480091665502,
+    "moa_broad_loss": 55.26689347336695,
+    "moa_broad_accuracy": 0.5437560191237475,
+    "moa_broad_f1_macro": 0.18537640170908615,
+    "moa_broad_f1_weighted": 0.39816147258912976,
+    "moa_fine_loss": 383.4134706221305,
+    "moa_fine_accuracy": 0.5483714348916043,
+    "moa_fine_f1_macro": 0.0417217554804945,
+    "moa_fine_f1_weighted": 0.481844293552313
+  },
+  "experiment_time_seconds": 58601.49981069565
+}
