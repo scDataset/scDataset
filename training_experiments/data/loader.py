@@ -243,6 +243,7 @@ class TahoeDataLoader:
         fetch_factor: int = 16,
         num_workers: int = 12,
         min_count_baseline: int = 1000,
+        block_size: int | None = None,
         verbose: bool = True,
     ) -> Tuple[DataLoader, DataLoader]:
         """
@@ -262,6 +263,12 @@ class TahoeDataLoader:
         min_count_baseline : int
             Minimum count baseline for weight computation (only used for
             weighted strategies)
+        block_size : int, optional
+            Block size for block-based strategies. If None, uses defaults:
+            - block_shuffling: 4
+            - random_sampling: 1
+            - block_weighted: 4
+            - true_weighted: 1
         verbose : bool
             Whether to print progress information
 
@@ -287,8 +294,8 @@ class TahoeDataLoader:
             return batch.to_adata()
 
         # Determine train workers based on strategy
-        # Streaming with shuffle=False doesn't need multiprocessing
-        if strategy_name == STRATEGY_STREAMING:
+        # Streaming strategies don't support multiprocessing
+        if strategy_name in (STRATEGY_STREAMING, STRATEGY_STREAMING_BUFFER):
             train_workers = 1
         else:
             train_workers = num_workers
@@ -301,25 +308,36 @@ class TahoeDataLoader:
             strategy = Streaming(indices=None, shuffle=True)
 
         elif strategy_name == STRATEGY_BLOCK_SHUFFLING:
-            strategy = BlockShuffling(block_size=4, indices=None, drop_last=False)
+            # Default block_size=4 for block shuffling
+            effective_block_size = block_size if block_size is not None else 4
+            strategy = BlockShuffling(
+                block_size=effective_block_size, indices=None, drop_last=False
+            )
 
         elif strategy_name == STRATEGY_RANDOM_SAMPLING:
             # block_size=1 mimics true random shuffling
-            strategy = BlockShuffling(block_size=1, indices=None, drop_last=False)
+            effective_block_size = block_size if block_size is not None else 1
+            strategy = BlockShuffling(
+                block_size=effective_block_size, indices=None, drop_last=False
+            )
 
         elif strategy_name == STRATEGY_BLOCK_WEIGHTED:
+            # Default block_size=4 for block weighted sampling
+            effective_block_size = block_size if block_size is not None else 4
             weights = self._compute_weights(min_count_baseline, verbose)
             strategy = BlockWeightedSampling(
-                block_size=4,
+                block_size=effective_block_size,
                 weights=weights,
                 total_size=len(self.train_collection),
                 replace=True,
             )
 
         elif strategy_name == STRATEGY_TRUE_WEIGHTED:
+            # block_size=1 for true weighted sampling
+            effective_block_size = block_size if block_size is not None else 1
             weights = self._compute_weights(min_count_baseline, verbose)
             strategy = BlockWeightedSampling(
-                block_size=1,  # True weighted sampling
+                block_size=effective_block_size,
                 weights=weights,
                 total_size=len(self.train_collection),
                 replace=True,
@@ -377,6 +395,7 @@ def create_dataloaders(
     data_dir: str = "/home/kidara/raid/volume/vevo-data/2025-02-25/original_h5ad",
     label_dir: str = None,
     min_count_baseline: int = 1000,
+    block_size: int | None = None,
     verbose: bool = True,
 ) -> Tuple[DataLoader, DataLoader, LabelEncoder, int]:
     """
@@ -400,6 +419,8 @@ def create_dataloaders(
         If None, uses the default mappings directory.
     min_count_baseline : int
         Minimum count baseline for weight computation
+    block_size : int, optional
+        Block size for block-based strategies. If None, uses defaults.
     verbose : bool
         Whether to print progress information
 
@@ -417,6 +438,7 @@ def create_dataloaders(
         fetch_factor=fetch_factor,
         num_workers=num_workers,
         min_count_baseline=min_count_baseline,
+        block_size=block_size,
         verbose=verbose,
     )
 

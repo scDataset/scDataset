@@ -3,8 +3,8 @@ results_path: "./experiments/block_size_fetch_factor_eval_bionemo_random.csv"
 
 # Test parameters
 batch_sizes: [64]
-block_sizes: [1, 4, 16, 64, 128, 256]
-fetch_factors: [1, 4, 16, 64, 128, 256]
-num_workers_options: [0]
+block_sizes: [1, 4, 16, 64, 256, 1024]
+fetch_factors: [1, 4, 16, 64, 256, 1024]
+num_workers_options: [1]
 collection_type: "bionemo"
 test_modes: "random"

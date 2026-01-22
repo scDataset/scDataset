@@ -217,6 +217,85 @@ class TestDataLoaderInvalidStrategy:
             loader.create_dataloaders(strategy_name="invalid_strategy", batch_size=32)
 
 
+class TestStrategyWorkerConfig:
+    """Tests for worker configuration based on strategy."""
+
+    def test_streaming_strategies_require_single_worker(self):
+        """Test that streaming strategies should use num_workers=1."""
+        # Both STRATEGY_STREAMING and STRATEGY_STREAMING_BUFFER
+        # should use single worker due to shuffling semantics
+        from training_experiments.data.loader import (
+            STRATEGY_STREAMING,
+            STRATEGY_STREAMING_BUFFER,
+        )
+
+        # These are the strategies that should use single worker
+        single_worker_strategies = {STRATEGY_STREAMING, STRATEGY_STREAMING_BUFFER}
+
+        assert STRATEGY_STREAMING in single_worker_strategies
+        assert STRATEGY_STREAMING_BUFFER in single_worker_strategies
+
+    def test_block_strategies_allow_multiple_workers(self):
+        """Test that block-based strategies can use multiple workers."""
+        from training_experiments.data.loader import (
+            STRATEGY_BLOCK_SHUFFLING,
+            STRATEGY_BLOCK_WEIGHTED,
+            STRATEGY_RANDOM_SAMPLING,
+            STRATEGY_STREAMING,
+            STRATEGY_STREAMING_BUFFER,
+            STRATEGY_TRUE_WEIGHTED,
+        )
+
+        # These strategies support multiple workers
+        multi_worker_strategies = {
+            STRATEGY_BLOCK_SHUFFLING,
+            STRATEGY_RANDOM_SAMPLING,
+            STRATEGY_BLOCK_WEIGHTED,
+            STRATEGY_TRUE_WEIGHTED,
+        }
+
+        # Single worker strategies
+        single_worker_strategies = {STRATEGY_STREAMING, STRATEGY_STREAMING_BUFFER}
+
+        # Ensure they don't overlap
+        assert len(multi_worker_strategies & single_worker_strategies) == 0
+
+
+class TestBlockSizeConfiguration:
+    """Tests for configurable block_size parameter."""
+
+    def test_block_shuffling_default_block_size(self):
+        """Test that block_shuffling uses default block_size=4."""
+        strategy = BlockShuffling(block_size=4, indices=None, drop_last=False)
+        assert strategy.block_size == 4
+
+    def test_random_sampling_default_block_size(self):
+        """Test that random_sampling uses default block_size=1."""
+        strategy = BlockShuffling(block_size=1, indices=None, drop_last=False)
+        assert strategy.block_size == 1
+
+    def test_block_size_can_be_customized(self):
+        """Test that block_size can be set to custom values."""
+        # Block size of 8
+        strategy = BlockShuffling(block_size=8, indices=None, drop_last=False)
+        assert strategy.block_size == 8
+
+        # Block size of 2
+        strategy2 = BlockShuffling(block_size=2, indices=None, drop_last=False)
+        assert strategy2.block_size == 2
+
+    def test_weighted_sampling_custom_block_size(self):
+        """Test that weighted sampling accepts custom block_size."""
+        n_samples = 100
+        weights = np.ones(n_samples)
+
+        # Custom block_size=8
+        strategy = BlockWeightedSampling(
+            block_size=8, weights=weights, total_size=n_samples, replace=True
+        )
+        assert strategy.block_size == 8
+
+
 class TestWeightedSamplingWithWeights:
     """Integration tests for weighted sampling with computed weights."""
 

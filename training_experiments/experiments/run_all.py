@@ -14,6 +14,7 @@ Strategies:
 
 Usage:
     python -m training_experiments.experiments.run_all --all --epochs 1
+    python -m training_experiments.experiments.run_all --config my_config.yaml
 """
 
 import argparse
@@ -35,6 +36,11 @@ from training_experiments.models.linear import TASK_NAMES, create_model
 from training_experiments.trainers.multitask import (
     MultiTaskTrainer,
     save_results,
+)
+from training_experiments.utils.config import (
+    get_block_size_for_strategy,
+    load_config,
+    merge_config_with_args,
 )
 
 # Suppress RuntimeWarning about sys.modules (harmless, occurs with python -m)
@@ -74,6 +80,7 @@ def run_experiment(
     fetch_factor: int = 16,
     num_workers: int = 12,
     min_count_baseline: int = 1000,
+    block_size: Optional[int] = None,
     device: str = "cuda",
     save_dir: Optional[str] = None,
     log_interval: int = 100,
@@ -100,6 +107,8 @@ def run_experiment(
         Number of workers for DataLoader
     min_count_baseline : int
         Minimum count baseline for weight computation
+    block_size : int, optional
+        Block size for block-based strategies. If None, uses defaults.
     device : str
         Device to use for training
     save_dir : str, optional
@@ -146,6 +155,7 @@ def run_experiment(
             fetch_factor=fetch_factor,
             num_workers=num_workers,
             min_count_baseline=min_count_baseline,
+            block_size=block_size,
             verbose=verbose,
         )
 
@@ -195,6 +205,7 @@ def run_experiment(
                 "fetch_factor": fetch_factor,
                 "num_workers": num_workers,
                 "min_count_baseline": min_count_baseline,
+                "block_size": block_size,
                 "device": device,
             },
             "data_info": {"task_dims": task_dims, "feature_dim": feature_dim},
@@ -261,6 +272,7 @@ def run_all_experiments(
     fetch_factor: int = 16,
     num_workers: int = 12,
     min_count_baseline: int = 1000,
+    block_size: Optional[int] = None,
     device: str = "cuda",
     save_dir: str = "./results",
     strategies: Optional[list] = None,
@@ -283,6 +295,8 @@ def run_all_experiments(
         Number of workers for DataLoader
     min_count_baseline : int
         Minimum count baseline for weight computation
+    block_size : int, optional
+        Block size for block-based strategies. If None, uses defaults.
     device : str
         Device to use for training
     save_dir : str
@@ -311,6 +325,7 @@ def run_all_experiments(
             fetch_factor=fetch_factor,
             num_workers=num_workers,
             min_count_baseline=min_count_baseline,
+            block_size=block_size,
             device=device,
             save_dir=save_dir,
             verbose=verbose,
@@ -346,6 +361,13 @@ def main():
     )
 
     parser.add_argument(
+        "--config",
+        type=str,
+        default=None,
+        help="Path to YAML config file. If not specified, uses default config.",
+    )
+
+    parser.add_argument(
         "--strategy",
         type=str,
         default=None,
@@ -355,29 +377,53 @@ def main():
 
     parser.add_argument("--all", action="store_true", help="Run all strategies")
 
-    parser.add_argument("--batch_size", type=int, default=64, help="Batch size")
-
     parser.add_argument(
-        "--epochs", type=int, default=1, help="Number of training epochs"
+        "--batch_size",
+        type=int,
+        default=None,
+        help="Batch size (overrides config)",
     )
 
     parser.add_argument(
-        "--learning_rate", type=float, default=1e-3, help="Learning rate"
+        "--epochs",
+        type=int,
+        default=None,
+        help="Number of training epochs (overrides config)",
     )
 
     parser.add_argument(
-        "--fetch_factor", type=int, default=16, help="Fetch factor for scDataset"
+        "--learning_rate",
+        type=float,
+        default=None,
+        help="Learning rate (overrides config)",
     )
 
     parser.add_argument(
-        "--num_workers", type=int, default=12, help="Number of workers for DataLoader"
+        "--fetch_factor",
+        type=int,
+        default=None,
+        help="Fetch factor for scDataset (overrides config)",
+    )
+
+    parser.add_argument(
+        "--num_workers",
+        type=int,
+        default=None,
+        help="Number of workers for DataLoader (overrides config)",
     )
 
     parser.add_argument(
         "--min_count_baseline",
         type=int,
-        default=1000,
-        help="Minimum count baseline for weight computation",
+        default=None,
+        help="Minimum count baseline for weight computation (overrides config)",
+    )
+
+    parser.add_argument(
+        "--block_size",
+        type=int,
+        default=None,
+        help="Block size for block-based strategies (overrides config)",
     )
 
     parser.add_argument(
@@ -391,21 +437,42 @@ def main():
     parser.add_argument(
         "--save_dir",
         type=str,
-        default="/home/kidara/raid/volume/scDataset/training_experiments/results",
-        help="Directory to save results",
+        default=None,
+        help="Directory to save results (overrides config)",
     )
 
     parser.add_argument(
         "--log_interval",
         type=int,
-        default=100,
-        help="Print progress every N batches (0 to disable)",
+        default=None,
+        help="Print progress every N batches (overrides config)",
     )
 
     args = parser.parse_args()
 
+    # Load configuration from YAML file
+    config = load_config(args.config)
+
+    # Merge config with CLI arguments (CLI takes precedence)
+    merged = merge_config_with_args(
+        config,
+        batch_size=args.batch_size,
+        num_epochs=args.epochs,
+        learning_rate=args.learning_rate,
+        fetch_factor=args.fetch_factor,
+        num_workers=args.num_workers,
+        min_count_baseline=args.min_count_baseline,
+        block_size=args.block_size,
+        save_dir=args.save_dir,
+        log_interval=args.log_interval,
+    )
+
     # Set up logging
     logger = setup_logging(verbose=True)
+
+    logger.info("Configuration loaded:")
+    for key, value in merged.items():
+        logger.info(f"  {key}: {value}")
 
     # Check device availability
     if args.device == "cuda" and not torch.cuda.is_available():
@@ -418,14 +485,15 @@ def main():
         # Run all strategies
         logger.info("Running all strategies...")
         results = run_all_experiments(
-            num_epochs=args.epochs,
-            batch_size=args.batch_size,
-            learning_rate=args.learning_rate,
-            fetch_factor=args.fetch_factor,
-            num_workers=args.num_workers,
-            min_count_baseline=args.min_count_baseline,
+            num_epochs=merged["num_epochs"],
+            batch_size=merged["batch_size"],
+            learning_rate=merged["learning_rate"],
+            fetch_factor=merged["fetch_factor"],
+            num_workers=merged["num_workers"],
+            min_count_baseline=merged["min_count_baseline"],
+            block_size=merged["block_size"],
             device=args.device,
-            save_dir=args.save_dir,
+            save_dir=merged["save_dir"],
         )
 
         logger.info("=" * 60)
@@ -442,18 +510,24 @@ def main():
             else:
                 logger.warning(f"{strategy}: FAILED")
     else:
+        # Get strategy-specific block_size from config if not overridden
+        strategy_block_size = get_block_size_for_strategy(
+            config, args.strategy, args.block_size
+        )
+
         # Run single strategy
         run_experiment(
             strategy_name=args.strategy,
-            num_epochs=args.epochs,
-            batch_size=args.batch_size,
-            learning_rate=args.learning_rate,
-            fetch_factor=args.fetch_factor,
-            num_workers=args.num_workers,
-            min_count_baseline=args.min_count_baseline,
+            num_epochs=merged["num_epochs"],
+            batch_size=merged["batch_size"],
+            learning_rate=merged["learning_rate"],
+            fetch_factor=merged["fetch_factor"],
+            num_workers=merged["num_workers"],
+            min_count_baseline=merged["min_count_baseline"],
+            block_size=strategy_block_size,
             device=args.device,
-            save_dir=args.save_dir,
-            log_interval=args.log_interval,
+            save_dir=merged["save_dir"],
+            log_interval=merged["log_interval"],
             logger=logger,
         )
 

@@ -5,7 +5,7 @@ strategies on the Tahoe-100M dataset for multi-task classification.
 
 ## Overview
 
-We train a simple **linear model** (no MLP) to avoid confounding effects from model
+We train a simple linear model to avoid confounding effects from model
 selection or hyperparameter tuning. The model consists of 4 separate linear layers,
 one for each task, combined for computational efficiency since training is I/O
 bottlenecked rather than compute-bound.
@@ -104,17 +104,69 @@ python -m training_experiments.experiments.run_all --all --epochs 10
 
 ### Configuration
 
-Modify `configs/default.yaml` for experiment settings:
+The experiments use a YAML configuration file to set all parameters. The default config
+is loaded from `configs/default.yaml`.
+
+**Using a custom config:**
+```bash
+python -m training_experiments.experiments.run_all --config my_config.yaml --all
+```
+
+**Overriding specific values from CLI:**
+```bash
+python -m training_experiments.experiments.run_all --batch_size 128 --epochs 5 --all
+```
+
+CLI arguments always override config file values.
+
+**Configuration file structure (`configs/default.yaml`):**
 
 ```yaml
+# Dataset paths
+data:
+  h5ad_dir: "/path/to/h5ad/files"
+  label_dir: null  # Uses bundled mappings by default
+
+# Training parameters
 training:
-  epochs: 10
   batch_size: 64
+  num_epochs: 1
   learning_rate: 0.001
 
-data:
+# scDataset parameters
+scdataset:
   fetch_factor: 16
-  num_workers: 0
+  num_workers: 12
+
+# Weight computation for weighted sampling
+weights:
+  min_count_baseline: 1000
+
+# Strategy-specific configurations
+strategies:
+  streaming:
+    enabled: true
+    shuffle: false
+  streaming_buffer:
+    enabled: true
+    shuffle: true
+  block_shuffling:
+    enabled: true
+    block_size: 4
+  random_sampling:
+    enabled: true
+    block_size: 1
+  block_weighted:
+    enabled: true
+    block_size: 4
+  true_weighted:
+    enabled: true
+    block_size: 1
+
+# Output
+output:
+  save_dir: "./results"
+  log_interval: 100
 ```
 
 ## Plotting Results
@@ -170,24 +222,26 @@ training_experiments/
 ├── requirements.txt             # Dependencies
 ├── __init__.py                  # Package init
 ├── analysis/
-│   ├── __init__.py
+│   ├── __init__.py             # Result loading utilities
 │   └── plotting.py             # Plotting utilities
 ├── configs/
 │   └── default.yaml            # Default configuration
 ├── data/
 │   ├── __init__.py
 │   ├── loader.py               # Tahoe dataset loading utilities
-│   └── label_encoder.py        # Label encoding for all 4 tasks
+│   ├── label_encoder.py        # Label encoding for all 4 tasks
+│   └── mappings/               # Label mapping pickle files
 ├── experiments/
 │   ├── __init__.py
-│   ├── base.py                 # Base experiment runner
-│   └── run_all.py              # Run all experiments
+│   └── run_all.py              # Run experiments
 ├── models/
 │   ├── __init__.py
 │   └── linear.py               # Multi-task linear classifier
 ├── notebooks/
 │   └── analyze_results.ipynb   # Interactive analysis notebook
+├── results/                     # Experiment outputs (gitignored)
 ├── tests/
+│   ├── test_config.py          # Test configuration loading
 │   ├── test_data_loading.py    # Test data loading strategies
 │   ├── test_models.py          # Test model architecture
 │   └── test_weights.py         # Test weight computation
@@ -196,6 +250,7 @@ training_experiments/
 │   └── multitask.py            # Multi-task trainer
 └── utils/
     ├── __init__.py
+    ├── config.py               # Configuration loading utilities
     └── weights.py              # Weight computation utilities
 ```
 
