@@ -164,10 +164,10 @@ def _deep_sizeof(obj: Any, seen: Optional[Set[int]] = None) -> int:
 def estimate_sample_size(
     data_collection,
     n_samples: int = 16,
-    fetch_transform: Optional[Callable] = None,
-    batch_transform: Optional[Callable] = None,
     fetch_callback: Optional[Callable] = None,
+    fetch_transform: Optional[Callable] = None,
     batch_callback: Optional[Callable] = None,
+    batch_transform: Optional[Callable] = None,
 ) -> int:
     """
     Estimate the memory size of a single sample from the data collection.
@@ -183,22 +183,22 @@ def estimate_sample_size(
         Data collection to estimate sample size from. Must support indexing.
     n_samples : int, default=16
         Number of samples to average over for estimation.
-    fetch_transform : Callable, optional
-        Transform to apply after fetching data. This should match the
-        ``fetch_transform`` parameter used with scDataset. Applied to the
-        fetched sample before size estimation.
-    batch_transform : Callable, optional
-        Transform to apply to batches. This should match the
-        ``batch_transform`` parameter used with scDataset. Applied after
-        fetch_transform.
     fetch_callback : Callable, optional
         Custom fetch function. If provided, called as
         ``fetch_callback(data_collection, [index])`` to get the sample.
         This should match the ``fetch_callback`` parameter used with scDataset.
+    fetch_transform : Callable, optional
+        Transform to apply after fetching data. This should match the
+        ``fetch_transform`` parameter used with scDataset. Applied to the
+        fetched sample before size estimation.
     batch_callback : Callable, optional
         Custom batch extraction function. If provided, called as
         ``batch_callback(fetched_data, [0])`` to extract a single sample.
         This should match the ``batch_callback`` parameter used with scDataset.
+    batch_transform : Callable, optional
+        Transform to apply to batches. This should match the
+        ``batch_transform`` parameter used with scDataset. Applied after
+        fetch_transform.
 
     Returns
     -------
@@ -217,8 +217,8 @@ def estimate_sample_size(
 
     .. code-block:: python
 
-        from scdataset import fetch_transform_adata
-        size = estimate_sample_size(adata_collection, fetch_transform=fetch_transform_adata)
+        from scdataset import adata_to_mindex
+        size = estimate_sample_size(adata_collection, fetch_transform=adata_to_mindex)
 
     Notes
     -----
@@ -278,14 +278,14 @@ def estimate_sample_size(
 def suggest_parameters(
     data_collection,
     batch_size: int,
-    target_ram_fraction: float = 0.25,
+    target_ram_fraction: float = 0.20,
     max_workers: int = 16,
     min_workers: int = 1,
     verbose: bool = True,
-    fetch_transform: Optional[Callable] = None,
-    batch_transform: Optional[Callable] = None,
     fetch_callback: Optional[Callable] = None,
+    fetch_transform: Optional[Callable] = None,
     batch_callback: Optional[Callable] = None,
+    batch_transform: Optional[Callable] = None,
 ) -> Dict[str, Any]:
     r"""
     Suggest optimal parameters for scDataset based on system resources.
@@ -310,18 +310,18 @@ def suggest_parameters(
         Minimum number of workers to suggest.
     verbose : bool, default=True
         If True, print detailed suggestions and explanations.
-    fetch_transform : Callable, optional
-        Transform to apply after fetching data. Pass the same function
-        you will use with scDataset for accurate memory estimation.
-    batch_transform : Callable, optional
-        Transform to apply to batches. Pass the same function
-        you will use with scDataset for accurate memory estimation.
     fetch_callback : Callable, optional
         Custom fetch function. Pass the same function you will use
         with scDataset for accurate memory estimation.
+    fetch_transform : Callable, optional
+        Transform to apply after fetching data. Pass the same function
+        you will use with scDataset for accurate memory estimation.
     batch_callback : Callable, optional
         Custom batch extraction function. Pass the same function you will use
         with scDataset for accurate memory estimation.
+    batch_transform : Callable, optional
+        Transform to apply to batches. Pass the same function
+        you will use with scDataset for accurate memory estimation.
 
     Returns
     -------
@@ -386,8 +386,8 @@ def suggest_parameters(
     - ``block_size_conservative`` (fetch_factor // 2): More randomness, slightly
       lower throughput. Good for training where randomization is important.
     - ``block_size_balanced`` (fetch_factor): Balanced randomness and throughput.
-    - ``block_size_aggressive`` (fetch_factor * 2): Maximum throughput, less
-      randomness. Good for validation/inference or when data is already shuffled.
+    - ``block_size_aggressive`` (fetch_factor * 2): Higher throughput, less
+      randomness.
 
     Block sizes smaller than ``fetch_factor // 2`` or larger than ``fetch_factor * 2``
     have diminishing returns.

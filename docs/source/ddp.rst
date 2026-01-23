@@ -181,7 +181,7 @@ Here's a complete example with all components:
     from torch.utils.data import DataLoader
     import anndata as ad
     from scdataset import scDataset, BlockShuffling
-    from scdataset.transforms import fetch_transform_adata
+    from scdataset.transforms import adata_to_mindex
     
     def train():
         # Initialize distributed
@@ -197,7 +197,7 @@ Here's a complete example with all components:
             adata,
             BlockShuffling(block_size=256),
             batch_size=512,
-            fetch_callback=lambda d, idx: fetch_transform_adata(d[idx])
+            fetch_callback=lambda d, idx: adata_to_mindex(d[idx])
         )
         
         loader = DataLoader(dataset, batch_size=None, num_workers=4)

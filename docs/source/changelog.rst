@@ -17,8 +17,8 @@ Changelog
 
 * **Built-in transform functions** (``transforms.py``):
   
-  * ``fetch_transform_adata()`` - Transform AnnData/AnnCollection to MultiIndexable
-  * ``fetch_transform_hf()`` - Convert HuggingFace sparse data to dense tensors
+  * ``adata_to_mindex()`` - Transform AnnData/AnnCollection to MultiIndexable
+  * ``hf_tahoe_to_tensor()`` - Convert HuggingFace sparse data to dense tensors
 
 * **Auto-configuration module** (``scdataset.experimental.auto_config``):
   
@@ -85,8 +85,8 @@ Changelog
 
 * **Documentation improvements**:
   
-  * New transforms guide (``transforms.rst``) documenting ``fetch_transform``,
-    ``batch_transform``, ``fetch_callback``, and ``batch_callback``
+  * New transforms guide (``transforms.rst``) documenting ``fetch_callback``,
+    ``fetch_transform``, ``batch_callback``, and ``batch_transform``
   * Comprehensive AnnCollection example in examples
   * Documentation badge added to README and docs
   * Updated benchmarks README with utility documentation

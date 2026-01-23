@@ -7,7 +7,10 @@ import pytest
 import torch
 
 from scdataset.multiindexable import MultiIndexable
-from scdataset.transforms import fetch_transform_adata, fetch_transform_hf
+from scdataset.transforms import (
+    adata_to_mindex,
+    hf_tahoe_to_tensor,
+)
 
 # =============================================================================
 # Mock objects for AnnData tests
@@ -40,19 +43,19 @@ class MockAnnData:
 
 
 # =============================================================================
-# Tests for fetch_transform_adata
+# Tests for adata_to_mindex
 # =============================================================================
 
 
-class TestFetchTransformAdata:
-    """Tests for fetch_transform_adata function."""
+class TestAdataToMindex:
+    """Tests for adata_to_mindex function."""
 
     def test_basic_dense_array(self):
         """Test with dense numpy array."""
         X = np.random.randn(10, 100)
         batch = MockAnnData(X)
 
-        result = fetch_transform_adata(batch)
+        result = adata_to_mindex(batch)
 
         assert isinstance(result, MultiIndexable)
         assert "X" in result.names
@@ -67,7 +70,7 @@ class TestFetchTransformAdata:
         X_sparse = sp.csr_matrix(X_dense)
         batch = MockAnnData(X_sparse)
 
-        result = fetch_transform_adata(batch)
+        result = adata_to_mindex(batch)
 
         assert isinstance(result, MultiIndexable)
         np.testing.assert_array_almost_equal(result["X"], X_dense)
@@ -81,7 +84,7 @@ class TestFetchTransformAdata:
         }
         batch = MockAnnData(X, obs_data)
 
-        result = fetch_transform_adata(batch, columns=["cell_type", "batch"])
+        result = adata_to_mindex(batch, columns=["cell_type", "batch"])
 
         assert "X" in result.names
         assert "cell_type" in result.names
@@ -95,7 +98,7 @@ class TestFetchTransformAdata:
         obs_data = {"label": np.array([0, 1, 2, 0, 1])}
         batch = MockAnnData(X, obs_data)
 
-        result = fetch_transform_adata(batch, columns=["label"])
+        result = adata_to_mindex(batch, columns=["label"])
 
         assert "label" in result.names
         np.testing.assert_array_equal(result["label"], obs_data["label"])
@@ -106,7 +109,7 @@ class TestFetchTransformAdata:
         obs_data = {"label": np.arange(10)}
         batch = MockAnnData(X, obs_data)
 
-        result = fetch_transform_adata(batch, columns=["label"])
+        result = adata_to_mindex(batch, columns=["label"])
 
         # Test subset indexing
         indices = [0, 2, 4]
@@ -117,12 +120,12 @@ class TestFetchTransformAdata:
 
 
 # =============================================================================
-# Tests for fetch_transform_hf
+# Tests for hf_tahoe_to_tensor
 # =============================================================================
 
 
-class TestFetchTransformHf:
-    """Tests for fetch_transform_hf function."""
+class TestHfTahoeToTensor:
+    """Tests for hf_tahoe_to_tensor function."""
 
     def test_dict_format(self):
         """Test with dict input format."""
@@ -131,7 +134,7 @@ class TestFetchTransformHf:
             "expressions": [np.array([1.0, 2.0, 3.0]), np.array([4.0, 5.0])],
         }
 
-        result = fetch_transform_hf(batch, num_genes=20)
+        result = hf_tahoe_to_tensor(batch, num_genes=20)
 
         assert isinstance(result, torch.Tensor)
         assert result.shape == (2, 20)
@@ -148,7 +151,7 @@ class TestFetchTransformHf:
             {"genes": np.array([1, 4, 5]), "expressions": np.array([3.0, 4.0, 5.0])},
         ]
 
-        result = fetch_transform_hf(batch, num_genes=10)
+        result = hf_tahoe_to_tensor(batch, num_genes=10)
 
         assert result.shape == (2, 10)
         assert result[0, 0] == 1.0
@@ -167,7 +170,7 @@ class TestFetchTransformHf:
             ],
         }
 
-        result = fetch_transform_hf(batch, num_genes=10)
+        result = hf_tahoe_to_tensor(batch, num_genes=10)
 
         assert result.shape == (2, 10)
         assert torch.sum(result[0]) == 0  # First row should be all zeros
@@ -177,7 +180,7 @@ class TestFetchTransformHf:
         """Test with custom num_genes parameter."""
         batch = {"genes": [np.array([0, 99])], "expressions": [np.array([1.0, 2.0])]}
 
-        result = fetch_transform_hf(batch, num_genes=100)
+        result = hf_tahoe_to_tensor(batch, num_genes=100)
 
         assert result.shape == (1, 100)
         assert result[0, 0] == 1.0
@@ -190,14 +193,14 @@ class TestFetchTransformHf:
             "expressions": [np.array([1], dtype=np.int64)],  # Int input
         }
 
-        result = fetch_transform_hf(batch, num_genes=5)
+        result = hf_tahoe_to_tensor(batch, num_genes=5)
 
         assert result.dtype == torch.float32
 
     def test_invalid_input_type(self):
         """Test that invalid input raises error."""
         with pytest.raises(ValueError, match="must be a dictionary or a list"):
-            fetch_transform_hf("invalid", num_genes=10)
+            hf_tahoe_to_tensor("invalid", num_genes=10)
 
     def test_single_sample(self):
         """Test with single sample batch."""
@@ -206,7 +209,7 @@ class TestFetchTransformHf:
             "expressions": [np.array([1.0, 2.0, 3.0, 4.0, 5.0])],
         }
 
-        result = fetch_transform_hf(batch, num_genes=10)
+        result = hf_tahoe_to_tensor(batch, num_genes=10)
 
         assert result.shape == (1, 10)
         np.testing.assert_array_almost_equal(
@@ -226,7 +229,7 @@ class TestFetchTransformHf:
             "expressions": [np.random.randn(50) for _ in range(batch_size)],
         }
 
-        result = fetch_transform_hf(batch, num_genes=num_genes)
+        result = hf_tahoe_to_tensor(batch, num_genes=num_genes)
 
         assert result.shape == (batch_size, num_genes)
         # Check that non-zero values are in correct positions

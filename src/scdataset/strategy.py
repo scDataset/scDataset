@@ -129,7 +129,7 @@ class SamplingStrategy:
         Parameters
         ----------
         data_collection : object
-            The data collection to sample from. Must support ``len()`` and indexing.
+            The data collection to sample from.
         seed : int, optional
             Random seed for reproducible sampling. Ignored if ``rng`` is provided.
         rng : numpy.random.Generator, optional
@@ -923,8 +923,6 @@ class ClassBalancedSampling(BlockWeightedSampling):
     ----------
     labels : numpy.ndarray
         Array of class labels for each sample.
-    _balancing_mode : str
-        Either 'global' or 'subset', determined during get_indices().
 
     Raises
     ------
@@ -1014,24 +1012,20 @@ class ClassBalancedSampling(BlockWeightedSampling):
         if len(self.labels) == 0:
             raise ValueError("labels cannot be empty")
 
-        # Store indices for mode detection in _compute_class_weights
+        # Store indices for validation
         self._init_indices = np.asarray(indices) if indices is not None else None
 
-        # Determine balancing mode based on labels length vs indices length
-        if self._init_indices is not None:
-            if len(self.labels) == len(self._init_indices):
-                self._balancing_mode = "subset"
-            elif len(self.labels) > len(self._init_indices):
-                self._balancing_mode = "global"
-            else:
-                raise ValueError(
-                    f"labels length ({len(self.labels)}) must be either equal to "
-                    f"indices length ({len(self._init_indices)}) for subset balancing, "
-                    f"or greater than indices length for global balancing"
-                )
-        else:
-            # No indices provided - labels must match full dataset
-            self._balancing_mode = "global"
+        # Validate labels length vs indices length
+        # - Subset mode: len(labels) == len(indices) - balance within subset
+        # - Global mode: len(labels) > len(indices) - use global class frequencies
+        if self._init_indices is not None and len(self.labels) < len(
+            self._init_indices
+        ):
+            raise ValueError(
+                f"labels length ({len(self.labels)}) must be either equal to "
+                f"indices length ({len(self._init_indices)}) for subset balancing, "
+                f"or greater than indices length for global balancing"
+            )
 
         weights = self._compute_class_weights()
 
@@ -1095,23 +1089,14 @@ class ClassBalancedSampling(BlockWeightedSampling):
             Class 1 samples are 4x more likely to be sampled despite
             being 50% of the subset.
         """
-        if self._balancing_mode == "subset":
-            # Subset mode: compute weights from the subset labels directly
-            # In this mode, self.labels has the same length as indices
-            working_labels = self.labels
-        else:
-            # Global mode: compute weights from full label array
-            # The parent class will handle subsetting to indices
-            working_labels = self.labels
-
-        unique_classes, class_counts = np.unique(working_labels, return_counts=True)
+        unique_classes, class_counts = np.unique(self.labels, return_counts=True)
 
         # Compute inverse frequency weights
         class_weights = 1.0 / class_counts
 
         # Create sample weights by mapping class weights to each sample
-        weights = np.zeros(len(working_labels))
+        weights = np.zeros(len(self.labels))
         for cls, weight in zip(unique_classes, class_weights):
-            weights[working_labels == cls] = weight
+            weights[self.labels == cls] = weight
 
         return weights

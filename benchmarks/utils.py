@@ -2,14 +2,9 @@
 Utility functions for scDataset benchmarks.
 
 This module provides utility functions for transforming and loading data
-from various sources when benchmarking scDataset. These transforms can also
-serve as reference implementations for users working with similar data formats.
+from various sources when benchmarking scDataset.
 
-Transforms
-----------
-fetch_transform_hf : Transform for HuggingFace sparse gene expression data
-fetch_transform_adata : Transform for AnnData/AnnCollection with MultiIndexable output
-fetch_callback_bionemo : Fetch callback for BioNeMo SingleCellMemMapDataset
+Transforms are imported from scdataset.transforms for consistency.
 
 Utilities
 ---------
@@ -20,8 +15,6 @@ save_results_to_csv : Save benchmark results to CSV
 
 import gc
 import os
-
-# Import MultiIndexable for fetch_transform_adata
 import sys
 import time
 from typing import List, Optional, Sequence, Union
@@ -35,255 +28,22 @@ from tqdm.auto import tqdm
 
 # Add the src folder to path for development imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
+
+# Import transforms from scdataset - these are the canonical implementations
 try:
+    from scdataset.transforms import (
+        adata_to_mindex,
+        hf_tahoe_to_tensor,
+        bionemo_to_tensor,
+    )
     from scdataset import MultiIndexable
 except ImportError:
-    from scdataset.multiindexable import MultiIndexable
-
-
-def fetch_transform_hf(batch, num_genes: int = 62713):
-    """
-    Transform HuggingFace sparse gene expression data to dense tensors.
-
-    This transform converts sparse gene expression data stored in HuggingFace
-    format (with separate 'genes' and 'expressions' arrays) into dense PyTorch
-    tensors suitable for model training.
-
-    Parameters
-    ----------
-    batch : dict or list
-        Batch of data from HuggingFace dataset. Can be:
-        - dict with 'genes' and 'expressions' keys (list of arrays)
-        - list of dicts, each with 'genes' and 'expressions' keys
-    num_genes : int, default=62713
-        Total number of genes (dimension of output tensor).
-        Default is the Tahoe-100M gene count.
-
-    Returns
-    -------
-    torch.Tensor
-        Dense tensor of shape (batch_size, num_genes) with gene expression values.
-
-    Examples
-    --------
-    >>> # With scDataset
-    >>> from scdataset import scDataset, BlockShuffling
-    >>> dataset = scDataset(
-    ...     hf_dataset,
-    ...     BlockShuffling(),
-    ...     batch_size=64,
-    ...     fetch_transform=fetch_transform_hf
-    ... )
-
-    Notes
-    -----
-    This transform is specifically designed for datasets like Tahoe-100M that
-    store sparse gene expression data in HuggingFace Datasets format, where
-    each sample has variable-length arrays of gene indices and their expression
-    values.
-
-    The transform efficiently converts the sparse representation to dense
-    tensors using numpy operations before converting to PyTorch, which is
-    faster than building sparse PyTorch tensors directly.
-    """
-    if isinstance(batch, dict):
-        # Extract numpy arrays from batch
-        batch_genes = batch["genes"]  # List of numpy arrays
-        batch_expr = batch["expressions"]  # List of numpy arrays
-    elif isinstance(batch, list):
-        # Extract numpy arrays from batch
-        batch_genes = [item["genes"] for item in batch]
-        batch_expr = [item["expressions"] for item in batch]
-    else:
-        raise ValueError("Batch must be a dictionary or a list of dictionaries.")
-
-    batch_size = len(batch_genes)
-
-    # Generate batch indices using numpy
-    lengths = [len(arr) for arr in batch_genes]
-    batch_indices_np = np.concatenate(
-        [np.full(l, i, dtype=np.int64) for i, l in enumerate(lengths)]
+    from scdataset.transforms import (
+        adata_to_mindex,
+        hf_tahoe_to_tensor,
+        bionemo_to_tensor,
     )
-
-    # Concatenate all genes and expressions in numpy first
-    gene_indices_np = np.concatenate(batch_genes)
-    values_np = np.concatenate(batch_expr)
-
-    # Single conversion to tensors
-    batch_indices = torch.from_numpy(batch_indices_np)
-    gene_indices = torch.from_numpy(gene_indices_np)
-    values = torch.from_numpy(values_np).float()
-
-    # Create combined indices tensor
-    indices = torch.stack([batch_indices, gene_indices], dim=0)
-
-    # Create dense tensor in one assignment
-    dense_tensor = torch.zeros(batch_size, num_genes, dtype=values.dtype)
-    dense_tensor[indices[0], indices[1]] = values
-
-    return dense_tensor
-
-
-def fetch_transform_adata(batch, columns: Optional[List[str]] = None):
-    """
-    Transform AnnData/AnnCollection batch to MultiIndexable with optional obs columns.
-
-    This transform converts a batch from an AnnCollection (or backed AnnData)
-    into a MultiIndexable object containing the expression matrix and optionally
-    selected observation columns. The MultiIndexable can then be indexed in
-    subsequent batch operations.
-
-    Parameters
-    ----------
-    batch : AnnData-like
-        Batch from AnnCollection or backed AnnData. Must have:
-        - `.to_memory()` method (for AnnCollection)
-        - `.X` attribute (expression matrix)
-        - `.obs` attribute (observation metadata)
-    columns : list of str, optional
-        List of observation column names to include in the output.
-        If None, only the X matrix is included.
-
-    Returns
-    -------
-    MultiIndexable
-        A MultiIndexable object with:
-        - 'X': Dense expression matrix as numpy array
-        - Additional keys for each column in `columns` (as numpy arrays)
-
-    Examples
-    --------
-    >>> # Basic usage - just X matrix
-    >>> from scdataset import scDataset, BlockShuffling
-    >>> from functools import partial
-    >>>
-    >>> dataset = scDataset(
-    ...     ann_collection,
-    ...     BlockShuffling(),
-    ...     batch_size=64,
-    ...     fetch_transform=fetch_transform_adata
-    ... )
-
-    >>> # With observation columns
-    >>> fetch_fn = partial(fetch_transform_adata, columns=['cell_type', 'batch'])
-    >>> dataset = scDataset(
-    ...     ann_collection,
-    ...     BlockShuffling(),
-    ...     batch_size=64,
-    ...     fetch_transform=fetch_fn
-    ... )
-    >>> for batch in dataset:
-    ...     X = batch['X']
-    ...     cell_types = batch['cell_type']
-    ...     break
-
-    Notes
-    -----
-    This transform calls `.to_memory()` to materialize the AnnData object,
-    which is necessary when working with backed or lazy AnnCollection objects.
-
-    Sparse matrices are automatically converted to dense numpy arrays for
-    compatibility with standard indexing operations.
-
-    The returned MultiIndexable preserves any unstructured metadata from
-    the original batch if you set it explicitly.
-    """
-    # Import scipy.sparse locally to avoid hard dependency
-    try:
-        import scipy.sparse as sp
-    except ImportError:
-        sp = None
-
-    # Materialize the AnnData or AnnCollection batch in memory
-    # AnnCollection has to_adata(), AnnData has to_memory()
-    if hasattr(batch, "to_adata"):
-        batch = batch.to_adata()
-    elif hasattr(batch, "to_memory"):
-        batch = batch.to_memory()
-
-    X = batch.X
-    # Densify if X is a sparse matrix
-    if sp is not None and sp.issparse(X):
-        X = X.toarray()
-
-    obs = batch.obs
-
-    # Create dict with X and all obs columns as numpy arrays
-    data_dict = {"X": X}
-
-    if columns is not None:
-        for col in columns:
-            data_dict[col] = obs[col].values
-
-    multi = MultiIndexable(data_dict)
-
-    return multi
-
-
-def fetch_callback_bionemo(
-    data_collection, idx: Union[int, slice, Sequence[int], np.ndarray, torch.Tensor]
-) -> torch.Tensor:
-    """
-    Fetch callback for BioNeMo SingleCellMemMapDataset.
-
-    This callback provides custom indexing logic for BioNeMo's
-    SingleCellMemMapDataset, which returns sparse matrices that need
-    to be collated and densified for use with scDataset.
-
-    Parameters
-    ----------
-    data_collection : SingleCellMemMapDataset
-        The BioNeMo dataset to fetch from.
-    idx : int, slice, sequence, or tensor
-        Indices to fetch. Can be:
-        - int: Single index
-        - slice: Slice object
-        - list/ndarray/tensor: Batch of indices
-
-    Returns
-    -------
-    torch.Tensor
-        Dense tensor of shape (batch_size, num_genes) with expression values.
-
-    Examples
-    --------
-    >>> from scdataset import scDataset, BlockShuffling
-    >>> from bionemo.scdl.io.single_cell_memmap_dataset import SingleCellMemMapDataset
-    >>>
-    >>> bionemo_data = SingleCellMemMapDataset(data_path='/path/to/data')
-    >>> dataset = scDataset(
-    ...     bionemo_data,
-    ...     BlockShuffling(),
-    ...     batch_size=64,
-    ...     fetch_callback=fetch_callback_bionemo
-    ... )
-
-    Notes
-    -----
-    This callback requires the bionemo-scdl package to be installed.
-    The collate function handles the sparse matrix format used by BioNeMo.
-    """
-    # Import bionemo collate function locally
-    from bionemo.scdl.util.torch_dataloader_utils import collate_sparse_matrix_batch
-
-    if isinstance(idx, int):
-        # Single index
-        return collate_sparse_matrix_batch(
-            [data_collection.__getitem__(idx)]
-        ).to_dense()
-    elif isinstance(idx, slice):
-        # Slice: convert to a list of indices
-        indices = list(range(*idx.indices(len(data_collection))))
-        batch_tensors = [data_collection.__getitem__(i) for i in indices]
-        return collate_sparse_matrix_batch(batch_tensors).to_dense()
-    elif isinstance(idx, (list, np.ndarray, torch.Tensor)):
-        # Batch indexing
-        if isinstance(idx, torch.Tensor):
-            idx = idx.tolist()
-        batch_tensors = [data_collection.__getitem__(int(i)) for i in idx]
-        return collate_sparse_matrix_batch(batch_tensors).to_dense()
-    else:
-        raise TypeError(f"Unsupported index type: {type(idx)}")
+    from scdataset.multiindexable import MultiIndexable
 
 
 def load_config(config_path: str) -> dict:
@@ -418,7 +178,7 @@ def evaluate_loader(
             if hasattr(batch, "obs") and "plate" in batch.obs:
                 plates_data = batch.obs["plate"].values
         elif hasattr(batch, "__getitem__"):
-            # Dict-like batch (dict or MultiIndexable from scDataset with fetch_transform_adata)
+            # Dict-like batch (dict or MultiIndexable from scDataset with adata_to_mindex)
             try:
                 X = batch["X"]
                 batch_size = X.shape[0] if hasattr(X, "shape") else len(X)

@@ -28,9 +28,9 @@ from torch.utils.data import DataLoader
 # Import utilities from utils module
 from utils import (
     evaluate_loader,
-    fetch_callback_bionemo,
-    fetch_transform_adata,
-    fetch_transform_hf,
+    adata_to_mindex,
+    hf_tahoe_to_tensor,
+    bionemo_to_tensor,
     load_config,
     save_results_to_csv,
 )
@@ -190,7 +190,7 @@ def run_evaluations(config_path):
                         batch_size=batch_size,
                         shuffle=False,
                         num_workers=num_workers,
-                        collate_fn=fetch_transform_hf,
+                        collate_fn=hf_tahoe_to_tensor,
                     )
 
                     desc = f"HuggingFace (stream) - batch_size={batch_size}, w={num_workers}"
@@ -228,7 +228,7 @@ def run_evaluations(config_path):
                         batch_size=batch_size,
                         shuffle=True,
                         num_workers=num_workers,
-                        collate_fn=fetch_transform_hf,
+                        collate_fn=hf_tahoe_to_tensor,
                     )
 
                     desc = f"PyTorch DataLoader (random) - batch_size={batch_size}, w={num_workers}"
@@ -343,18 +343,18 @@ def run_evaluations(config_path):
 
                         # Choose appropriate fetch transform based on collection type
                         if collection_type == "huggingface":
-                            fetch_transform = fetch_transform_hf
+                            fetch_transform = hf_tahoe_to_tensor
                         elif collection_type == "anncollection":
-                            # Use new fetch_transform_adata with plate column
+                            # Use new adata_to_mindex with plate column
                             fetch_transform = partial(
-                                fetch_transform_adata, columns=["plate"]
+                                adata_to_mindex, columns=["plate"]
                             )
                         elif collection_type == "bionemo":
                             fetch_transform = None
 
                         extra_params = {}
                         if collection_type == "bionemo":
-                            extra_params["fetch_callback"] = fetch_callback_bionemo
+                            extra_params["fetch_callback"] = bionemo_to_tensor
 
                         # Create BlockShuffling strategy
                         strategy = BlockShuffling(block_size=block_size)
@@ -410,17 +410,17 @@ def run_evaluations(config_path):
 
                         # Choose appropriate fetch transform based on collection type
                         if collection_type == "huggingface":
-                            fetch_transform = fetch_transform_hf
+                            fetch_transform = hf_tahoe_to_tensor
                         elif collection_type == "anncollection":
                             fetch_transform = partial(
-                                fetch_transform_adata, columns=["plate"]
+                                adata_to_mindex, columns=["plate"]
                             )
                         elif collection_type == "bionemo":
                             fetch_transform = None
 
                         extra_params = {}
                         if collection_type == "bionemo":
-                            extra_params["fetch_callback"] = fetch_callback_bionemo
+                            extra_params["fetch_callback"] = bionemo_to_tensor
 
                         # Create BlockWeightedSampling strategy (uniform weights)
                         strategy = BlockWeightedSampling(block_size=block_size)
@@ -475,17 +475,17 @@ def run_evaluations(config_path):
 
                     # Choose appropriate fetch transform based on collection type
                     if collection_type == "huggingface":
-                        fetch_transform = fetch_transform_hf
+                        fetch_transform = hf_tahoe_to_tensor
                     elif collection_type == "anncollection":
                         fetch_transform = partial(
-                            fetch_transform_adata, columns=["plate"]
+                            adata_to_mindex, columns=["plate"]
                         )
                     elif collection_type == "bionemo":
                         fetch_transform = None
 
                     extra_params = {}
                     if collection_type == "bionemo":
-                        extra_params["fetch_callback"] = fetch_callback_bionemo
+                        extra_params["fetch_callback"] = bionemo_to_tensor
 
                     # Create Streaming strategy
                     strategy = Streaming()

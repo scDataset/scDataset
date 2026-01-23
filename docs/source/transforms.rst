@@ -16,13 +16,13 @@ Built-in Transform Functions
 
 .. code-block:: python
 
-    from scdataset.transforms import fetch_transform_adata, fetch_transform_hf
+    from scdataset.transforms import adata_to_mindex, hf_tahoe_to_tensor
 
-**fetch_transform_adata**
+**adata_to_mindex**
     Transforms an AnnData batch into a :class:`~scdataset.MultiIndexable` object.
     Handles sparse matrices, backed data materialization, and optional observation columns.
 
-**fetch_transform_hf**
+**hf_tahoe_to_tensor**
     Converts HuggingFace sparse gene expression data to dense tensors or 
     :class:`~scdataset.MultiIndexable` objects.
 
@@ -97,7 +97,7 @@ fetch_callback
 
     from bionemo.scdl.util.torch_dataloader_utils import collate_sparse_matrix_batch
     
-    def fetch_callback_bionemo(data_collection, idx):
+    def bionemo_to_tensor(data_collection, idx):
         """Handle BioNeMo's sparse matrix format."""
         if isinstance(idx, int):
             return collate_sparse_matrix_batch([data_collection[idx]]).to_dense()
@@ -109,7 +109,7 @@ fetch_callback
         bionemo_data,
         BlockShuffling(),
         batch_size=64,
-        fetch_callback=fetch_callback_bionemo
+        fetch_callback=bionemo_to_tensor
     )
 
 fetch_transform
@@ -130,15 +130,15 @@ fetch_transform
 
 .. _builtin-transform-examples:
 
-Built-in: fetch_transform_adata
+Built-in: adata_to_mindex
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Use :func:`~scdataset.transforms.fetch_transform_adata` for AnnData and AnnCollection:
+Use :func:`~scdataset.transforms.adata_to_mindex` for AnnData and AnnCollection:
 
 .. code-block:: python
 
     from scdataset import scDataset, BlockShuffling
-    from scdataset.transforms import fetch_transform_adata
+    from scdataset.transforms import adata_to_mindex
     from functools import partial
     
     # Basic usage - returns MultiIndexable with 'X' key
@@ -146,11 +146,11 @@ Use :func:`~scdataset.transforms.fetch_transform_adata` for AnnData and AnnColle
         ann_collection,
         BlockShuffling(),
         batch_size=64,
-        fetch_transform=fetch_transform_adata
+        fetch_transform=adata_to_mindex
     )
     
     # With observation columns
-    fetch_fn = partial(fetch_transform_adata, columns=['cell_type', 'batch'])
+    fetch_fn = partial(adata_to_mindex, columns=['cell_type', 'batch'])
     dataset = scDataset(
         ann_collection,
         BlockShuffling(),
@@ -158,15 +158,15 @@ Use :func:`~scdataset.transforms.fetch_transform_adata` for AnnData and AnnColle
         fetch_transform=fetch_fn
     )
 
-Built-in: fetch_transform_hf
+Built-in: hf_tahoe_to_tensor
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Use :func:`~scdataset.transforms.fetch_transform_hf` for HuggingFace sparse datasets:
+Use :func:`~scdataset.transforms.hf_tahoe_to_tensor` for HuggingFace sparse datasets:
 
 .. code-block:: python
 
     from scdataset import scDataset, Streaming
-    from scdataset.transforms import fetch_transform_hf
+    from scdataset.transforms import hf_tahoe_to_tensor
     from functools import partial
     
     # Returns dense tensor (default)
@@ -174,15 +174,15 @@ Use :func:`~scdataset.transforms.fetch_transform_hf` for HuggingFace sparse data
         hf_dataset,
         Streaming(),
         batch_size=64,
-        fetch_transform=fetch_transform_hf
+        fetch_transform=hf_tahoe_to_tensor
     )
     
     # With custom gene count
-    fetch_fn = partial(fetch_transform_hf, num_genes=62713)
+    fetch_fn = partial(hf_tahoe_to_tensor, num_genes=62713)
     
     # With dict output format for multi-modal data
     fetch_fn = partial(
-        fetch_transform_hf, 
+        hf_tahoe_to_tensor, 
         output_format='dict', 
         obs_columns=['cell_type', 'batch']
     )

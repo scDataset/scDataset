@@ -25,7 +25,7 @@ class MockAnnDataBatch:
 
 
 class MockMultiIndexableBatch:
-    """Mock MultiIndexable batch (like scDataset with fetch_transform_adata produces)."""
+    """Mock MultiIndexable batch (like scDataset with adata_to_mindex produces)."""
 
     def __init__(self, X, plates):
         self._data = {"X": X, "plate": plates}
@@ -115,7 +115,7 @@ class TestEvaluateLoaderBatchEntropy:
         # This test would have caught the bug!
         assert result["avg_batch_entropy"] > 0, (
             "Batch entropy should be > 0 for MultiIndexable batches "
-            "(scDataset with fetch_transform_adata). If this fails, check that "
+            "(scDataset with adata_to_mindex). If this fails, check that "
             "evaluate_loader handles batch['plate'] correctly. "
             f"Got: {result['avg_batch_entropy']}"
         )
@@ -233,36 +233,36 @@ class TestBenchmarkUtils:
         """Test that utils can be imported."""
         from benchmarks.utils import (
             evaluate_loader,
-            fetch_transform_adata,
-            fetch_transform_hf,
+            adata_to_mindex,
+            hf_tahoe_to_tensor,
             load_config,
             save_results_to_csv,
         )
 
         assert callable(evaluate_loader)
-        assert callable(fetch_transform_adata)
-        assert callable(fetch_transform_hf)
+        assert callable(adata_to_mindex)
+        assert callable(hf_tahoe_to_tensor)
         assert callable(load_config)
         assert callable(save_results_to_csv)
 
-    def test_fetch_transform_hf_dict_format(self):
+    def test_hf_tahoe_to_tensor_dict_format(self):
         """Test HuggingFace transform with dict format."""
-        from benchmarks.utils import fetch_transform_hf
+        from benchmarks.utils import hf_tahoe_to_tensor
 
         batch = {
             "genes": [np.array([0, 5, 10]), np.array([2, 3])],
             "expressions": [np.array([1.0, 2.0, 3.0]), np.array([0.5, 1.5])],
         }
 
-        result = fetch_transform_hf(batch, num_genes=20)
+        result = hf_tahoe_to_tensor(batch, num_genes=20)
 
         assert result.shape == (2, 20)
         assert result[0, 0] == 1.0
         assert result[0, 5] == 2.0
 
-    def test_fetch_transform_adata_with_columns(self):
+    def test_adata_to_mindex_with_columns(self):
         """Test AnnData transform includes plate column correctly."""
-        from benchmarks.utils import fetch_transform_adata
+        from benchmarks.utils import adata_to_mindex
 
         # Mock AnnData batch
         class MockAnnData:
@@ -274,7 +274,7 @@ class TestBenchmarkUtils:
                 return self
 
         batch = MockAnnData()
-        result = fetch_transform_adata(batch, columns=["plate"])
+        result = adata_to_mindex(batch, columns=["plate"])
 
         # Result should be a MultiIndexable with X and plate accessible via indexing
         X = result["X"]

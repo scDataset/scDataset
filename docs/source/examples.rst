@@ -84,7 +84,7 @@ single-cell studies spanning multiple files (e.g., different patients, batches, 
 
     import torch
     
-    def fetch_transform_adata(batch, columns=None):
+    def adata_to_mindex(batch, columns=None):
         """
         Transform AnnData batch to MultiIndexable.
         
@@ -142,7 +142,7 @@ single-cell studies spanning multiple files (e.g., different patients, batches, 
         strategy=BlockShuffling(block_size=8),
         batch_size=64,
         fetch_factor=16,
-        fetch_transform=partial(fetch_transform_adata, columns=['plate']),
+        fetch_transform=partial(adata_to_mindex, columns=['plate']),
         batch_transform=to_tensor_batch
     )
     
@@ -180,7 +180,7 @@ single-cell studies spanning multiple files (e.g., different patients, batches, 
     )
     
     # Common transform function
-    fetch_fn = partial(fetch_transform_adata, columns=['cell_type', 'plate'])
+    fetch_fn = partial(adata_to_mindex, columns=['cell_type', 'plate'])
     
     # Training dataset with shuffling
     train_dataset = scDataset(

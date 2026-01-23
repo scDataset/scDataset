@@ -45,19 +45,19 @@ class scDataset(IterableDataset):
     drop_last : bool, default=False
         Whether to drop the last incomplete batch if it contains fewer than
         ``batch_size`` samples.
-    fetch_transform : Callable, optional
-        Function to transform data after fetching but before batching.
-        Applied to the entire fetch (multiple batches worth of data).
-    batch_transform : Callable, optional
-        Function to transform each individual batch before yielding.
     fetch_callback : Callable, optional
         Custom function to fetch data given indices. Should accept
         ``(data_collection, indices)`` and return the fetched data.
         If None, uses default indexing (``data_collection[indices]``).
+    fetch_transform : Callable, optional
+        Function to transform data after fetching but before batching.
+        Applied to the entire fetch (multiple batches worth of data).
     batch_callback : Callable, optional
         Custom function to extract batch data from fetched data.
         Should accept ``(fetched_data, batch_indices)`` and return the batch.
         If None, uses default indexing (``fetched_data[batch_indices]``).
+    batch_transform : Callable, optional
+        Function to transform each individual batch before yielding.
     rank : int, optional
         Process rank for distributed training (DDP). If None, auto-detects
         from torch.distributed if initialized. Defaults to 0 for non-distributed.
@@ -167,10 +167,10 @@ class scDataset(IterableDataset):
         batch_size: int,
         fetch_factor: int = 16,
         drop_last: bool = False,
-        fetch_transform: Optional[Callable] = None,
-        batch_transform: Optional[Callable] = None,
         fetch_callback: Optional[Callable] = None,
+        fetch_transform: Optional[Callable] = None,
         batch_callback: Optional[Callable] = None,
+        batch_transform: Optional[Callable] = None,
         rank: Optional[int] = None,
         world_size: Optional[int] = None,
         seed: Optional[int] = None,
@@ -190,14 +190,14 @@ class scDataset(IterableDataset):
             Positive integer for fetch size multiplier.
         drop_last : bool, default=False
             Whether to drop incomplete batches.
-        fetch_transform : Callable, optional
-            Transform applied to fetched data.
-        batch_transform : Callable, optional
-            Transform applied to each batch.
         fetch_callback : Callable, optional
             Custom fetch function.
+        fetch_transform : Callable, optional
+            Transform applied to fetched data.
         batch_callback : Callable, optional
             Custom batch extraction function.
+        batch_transform : Callable, optional
+            Transform applied to each batch.
         rank : int, optional
             Process rank for DDP. Auto-detected if None.
         world_size : int, optional
@@ -212,10 +212,6 @@ class scDataset(IterableDataset):
             raise ValueError("batch_size must be positive")
         if fetch_factor <= 0:
             raise ValueError("fetch_factor must be positive")
-        if not hasattr(data_collection, "__len__") or not hasattr(
-            data_collection, "__getitem__"
-        ):
-            raise TypeError("data_collection must support indexing and len()")
         if not isinstance(strategy, SamplingStrategy):
             raise TypeError("strategy must be an instance of SamplingStrategy")
 
@@ -228,10 +224,10 @@ class scDataset(IterableDataset):
         self.sort_before_fetch = True  # Always sort before fetch as per new design
 
         # Store callback functions
-        self.fetch_transform = fetch_transform
-        self.batch_transform = batch_transform
         self.fetch_callback = fetch_callback
+        self.fetch_transform = fetch_transform
         self.batch_callback = batch_callback
+        self.batch_transform = batch_transform
 
         # DDP support with auto-detection
         self.rank, self.world_size = self._detect_ddp(rank, world_size)
@@ -266,22 +262,26 @@ class scDataset(IterableDataset):
         # Generate random seed - will be shared across ranks
         import torch
 
-        if self.world_size > 1:
-            try:
-                import torch.distributed as dist
+        # Single process: just generate random seed
+        if self.world_size == 1:
+            return int(torch.randint(0, 2**31, (1,)).item())
 
-                if dist.is_available() and dist.is_initialized():
-                    # Rank 0 generates seed and broadcasts to all ranks
-                    seed_tensor = torch.zeros(1, dtype=torch.int64)
-                    if self.rank == 0:
-                        seed_tensor[0] = torch.randint(0, 2**31, (1,)).item()
-                    dist.broadcast(seed_tensor, src=0)
-                    return int(seed_tensor.item())
-            except ImportError:
-                pass
+        # Multi-process DDP: broadcast seed from rank 0
+        import torch.distributed as dist
 
-        # Single process or DDP not initialized: just generate random seed
-        return int(torch.randint(0, 2**31, (1,)).item())
+        if not (dist.is_available() and dist.is_initialized()):
+            raise RuntimeError(
+                f"world_size={self.world_size} but torch.distributed is not initialized. "
+                "Please call torch.distributed.init_process_group() before creating the dataset."
+            )
+
+        # Rank 0 generates seed and broadcasts to all ranks
+        seed_tensor = torch.zeros(1, dtype=torch.int64)
+        if self.rank == 0:
+            seed_tensor[0] = torch.randint(0, 2**31, (1,)).item()
+        dist.broadcast(seed_tensor, src=0)
+
+        return int(seed_tensor.item())
 
     def _detect_ddp(self, rank: Optional[int], world_size: Optional[int]) -> tuple:
         """
@@ -470,10 +470,9 @@ class scDataset(IterableDataset):
         if worker_info is None:
             rng = np.random.default_rng(current_seed)
         else:
-            # Workers get consistent ordering by using same base seed
-            rng = np.random.default_rng(
-                current_seed + worker_info.seed - worker_info.id
-            )
+            # All workers use the same seed for consistent global ordering
+            # (they partition work, not randomness)
+            rng = np.random.default_rng(current_seed)
 
         # Get indices from sampling strategy - same ordering across all ranks
         indices = self.strategy.get_indices(self.collection, seed=current_seed)

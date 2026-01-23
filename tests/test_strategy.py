@@ -665,36 +665,6 @@ class TestDualLabelBehavior:
         # Expect ratio close to 1 (balanced sampling)
         assert 0.8 < ratio < 1.2, f"Expected ratio ~1 (balanced), got {ratio}"
 
-    def test_balancing_mode_attribute_global(self):
-        """Test _balancing_mode is 'global' when labels > indices."""
-        full_labels = np.array([0] * 90 + [1] * 10)
-        subset_indices = np.array([0, 1, 2, 3, 4])
-
-        strategy = ClassBalancedSampling(
-            labels=full_labels, indices=subset_indices, block_size=4
-        )
-
-        assert strategy._balancing_mode == "global"
-
-    def test_balancing_mode_attribute_subset(self):
-        """Test _balancing_mode is 'subset' when labels == indices."""
-        subset_indices = np.array([0, 1, 2, 3, 4])
-        subset_labels = np.array([0, 0, 0, 1, 1])  # Same length as indices
-
-        strategy = ClassBalancedSampling(
-            labels=subset_labels, indices=subset_indices, block_size=4
-        )
-
-        assert strategy._balancing_mode == "subset"
-
-    def test_balancing_mode_attribute_no_indices(self):
-        """Test _balancing_mode is 'global' when no indices provided."""
-        labels = np.array([0, 0, 0, 1, 1])
-
-        strategy = ClassBalancedSampling(labels=labels, block_size=4)
-
-        assert strategy._balancing_mode == "global"
-
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

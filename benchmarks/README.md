@@ -41,10 +41,10 @@ Experiment settings can be configured using the YAML files in the experiment fol
 ### Transform Functions
 
 ```python
-from utils import fetch_transform_hf, fetch_transform_adata
+from utils import hf_tahoe_to_tensor, adata_to_mindex
 ```
 
-#### `fetch_transform_hf(batch, num_genes=62713)`
+#### `hf_tahoe_to_tensor(batch, num_genes=62713)`
 Transform function for HuggingFace sparse gene expression data.
 
 Converts sparse gene/expression pairs to dense numpy arrays.
@@ -56,7 +56,7 @@ Converts sparse gene/expression pairs to dense numpy arrays.
 **Returns:**
 - Dense numpy array of shape (batch_size, num_genes)
 
-#### `fetch_transform_adata(batch, columns=None)`
+#### `adata_to_mindex(batch, columns=None)`
 Transform function for AnnData/AnnCollection data.
 
 Materializes backed AnnData to memory and converts sparse matrices to dense.
@@ -73,12 +73,12 @@ Materializes backed AnnData to memory and converts sparse matrices to dense.
 from functools import partial
 
 # Create transform with specific columns
-transform = partial(fetch_transform_adata, columns=['cell_type', 'batch'])
+transform = partial(adata_to_mindex, columns=['cell_type', 'batch'])
 ```
 
 ### Callback Functions
 
-#### `fetch_callback_bionemo(data_collection, idx)`
+#### `bionemo_to_tensor(data_collection, idx)`
 Fetch callback for BioNeMo's sparse matrix format.
 
 Handles both single index and array index access for BioNeMo SingleCellCollection.

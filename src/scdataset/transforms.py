@@ -2,25 +2,31 @@
 Transform functions for scDataset.
 
 This module provides utility transform functions for common data formats
-like AnnData/AnnCollection and HuggingFace datasets. These transforms can
-be used as ``fetch_transform`` or ``batch_transform`` arguments in scDataset.
+like AnnData/AnnCollection, HuggingFace datasets, and BioNeMo datasets.
+These transforms can be used as ``fetch_callback``, ``fetch_transform``,
+``batch_callback``, or ``batch_transform`` arguments in scDataset.
 
 .. autosummary::
    :toctree: generated/
 
-   fetch_transform_adata
-   fetch_transform_hf
+   adata_to_mindex
+   hf_tahoe_to_tensor
+   bionemo_to_tensor
 """
 
-from typing import List, Optional
+from typing import List, Optional, Sequence, Union
 
 import numpy as np
 import torch
 
-__all__ = ["fetch_transform_adata", "fetch_transform_hf"]
+__all__ = [
+    "adata_to_mindex",
+    "hf_tahoe_to_tensor",
+    "bionemo_to_tensor",
+]
 
 
-def fetch_transform_adata(batch, columns: Optional[List[str]] = None):
+def adata_to_mindex(batch, columns: Optional[List[str]] = None):
     """
     Transform AnnData/AnnCollection batch to MultiIndexable with optional obs columns.
 
@@ -54,18 +60,18 @@ def fetch_transform_adata(batch, columns: Optional[List[str]] = None):
     --------
     >>> # Basic usage - just X matrix
     >>> from scdataset import scDataset, BlockShuffling
-    >>> from scdataset.transforms import fetch_transform_adata
+    >>> from scdataset.transforms import adata_to_mindex
     >>>
     >>> dataset = scDataset(
     ...     ann_collection,
     ...     BlockShuffling(),
     ...     batch_size=64,
-    ...     fetch_transform=fetch_transform_adata
+    ...     fetch_transform=adata_to_mindex
     ... )
 
     >>> # With observation columns using functools.partial
     >>> from functools import partial
-    >>> fetch_fn = partial(fetch_transform_adata, columns=['cell_type', 'batch'])
+    >>> fetch_fn = partial(adata_to_mindex, columns=['cell_type', 'batch'])
     >>> dataset = scDataset(
     ...     ann_collection,
     ...     BlockShuffling(),
@@ -129,9 +135,9 @@ def fetch_transform_adata(batch, columns: Optional[List[str]] = None):
     return multi
 
 
-def fetch_transform_hf(batch, num_genes: int = 62713):
+def hf_tahoe_to_tensor(batch, num_genes: int = 62713):
     """
-    Transform HuggingFace sparse gene expression data to dense tensors.
+    Transform HuggingFace Tahoe sparse gene expression data to dense tensors.
 
     This transform converts sparse gene expression data stored in HuggingFace
     format (with separate 'genes' and 'expressions' arrays) into dense PyTorch
@@ -158,13 +164,13 @@ def fetch_transform_hf(batch, num_genes: int = 62713):
     --------
     >>> # With scDataset
     >>> from scdataset import scDataset, BlockShuffling
-    >>> from scdataset.transforms import fetch_transform_hf
+    >>> from scdataset.transforms import hf_tahoe_to_tensor
     >>>
     >>> dataset = scDataset(
     ...     hf_dataset,
     ...     BlockShuffling(),
     ...     batch_size=64,
-    ...     fetch_transform=fetch_transform_hf
+    ...     fetch_transform=hf_tahoe_to_tensor
     ... )
 
     Notes
@@ -214,3 +220,83 @@ def fetch_transform_hf(batch, num_genes: int = 62713):
     dense_tensor[indices[0], indices[1]] = values
 
     return dense_tensor
+
+
+def bionemo_to_tensor(
+    data_collection, idx: Union[int, slice, Sequence[int], np.ndarray, torch.Tensor]
+) -> torch.Tensor:
+    """
+    Fetch callback for BioNeMo SingleCellMemMapDataset.
+
+    This callback provides custom indexing logic for BioNeMo's
+    SingleCellMemMapDataset, which returns sparse matrices that need
+    to be collated and densified for use with scDataset.
+
+    Use this as a ``fetch_callback`` in scDataset.
+
+    Parameters
+    ----------
+    data_collection : SingleCellMemMapDataset
+        The BioNeMo dataset to fetch from.
+    idx : int, slice, sequence, or tensor
+        Indices to fetch. Can be:
+        - int: Single index
+        - slice: Slice object
+        - list/ndarray/tensor: Batch of indices
+
+    Returns
+    -------
+    torch.Tensor
+        Dense tensor of shape (batch_size, num_genes) with expression values.
+
+    Examples
+    --------
+    >>> from scdataset import scDataset, BlockShuffling
+    >>> from scdataset.transforms import bionemo_to_tensor
+    >>> from bionemo.scdl.io.single_cell_memmap_dataset import SingleCellMemMapDataset
+    >>>
+    >>> bionemo_data = SingleCellMemMapDataset(data_path='/path/to/data')
+    >>> dataset = scDataset(
+    ...     bionemo_data,
+    ...     BlockShuffling(),
+    ...     batch_size=64,
+    ...     fetch_callback=bionemo_to_tensor
+    ... )
+
+    Notes
+    -----
+    This callback requires the bionemo-scdl package to be installed.
+    The collate function handles the sparse matrix format used by BioNeMo.
+
+    Raises
+    ------
+    ImportError
+        If bionemo-scdl is not installed.
+    """
+    # Import bionemo collate function locally to avoid hard dependency
+    try:
+        from bionemo.scdl.util.torch_dataloader_utils import collate_sparse_matrix_batch
+    except ImportError as e:
+        raise ImportError(
+            "bionemo_to_tensor requires the bionemo-scdl package. "
+            "Install it with: pip install bionemo-scdl"
+        ) from e
+
+    if isinstance(idx, int):
+        # Single index
+        return collate_sparse_matrix_batch(
+            [data_collection.__getitem__(idx)]
+        ).to_dense()
+    elif isinstance(idx, slice):
+        # Slice: convert to a list of indices
+        indices = list(range(*idx.indices(len(data_collection))))
+        batch_tensors = [data_collection.__getitem__(i) for i in indices]
+        return collate_sparse_matrix_batch(batch_tensors).to_dense()
+    elif isinstance(idx, (list, np.ndarray, torch.Tensor)):
+        # Batch indexing
+        if isinstance(idx, torch.Tensor):
+            idx = idx.tolist()
+        batch_tensors = [data_collection.__getitem__(int(i)) for i in idx]
+        return collate_sparse_matrix_batch(batch_tensors).to_dense()
+    else:
+        raise TypeError(f"Unsupported index type: {type(idx)}")

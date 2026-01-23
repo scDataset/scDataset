@@ -34,8 +34,8 @@ Transform Functions
    :toctree: generated/
    :nosignatures:
 
-   fetch_transform_adata
-   fetch_transform_hf
+   adata_to_mindex
+   hf_tahoe_to_tensor
 
 Sampling Strategies
 -------------------

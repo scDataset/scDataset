@@ -128,7 +128,11 @@ from .strategy import (
     SamplingStrategy,
     Streaming,
 )
-from .transforms import fetch_transform_adata, fetch_transform_hf
+from .transforms import (
+    adata_to_mindex,
+    bionemo_to_tensor,
+    hf_tahoe_to_tensor,
+)
 
 __version__ = "0.3.0"
 
@@ -142,6 +146,7 @@ __all__ = [
     "MultiIndexable",
     "suggest_parameters",
     "estimate_sample_size",
-    "fetch_transform_adata",
-    "fetch_transform_hf",
+    "adata_to_mindex",
+    "hf_tahoe_to_tensor",
+    "bionemo_to_tensor",
 ]

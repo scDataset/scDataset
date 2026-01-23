@@ -87,16 +87,35 @@ class TestScDatasetConstruction:
         with pytest.raises(ValueError, match="fetch_factor must be positive"):
             scDataset(sample_data, Streaming(), batch_size=64, fetch_factor=0)
 
-    def test_invalid_data_collection(self):
-        """Test that invalid data collection raises error."""
+    def test_custom_indexing_collection(self):
+        """Test that custom collections work with fetch_callback (no validation check)."""
 
-        # Object without __len__
-        class NoLen:
-            def __getitem__(self, idx):
-                return idx
+        # Object without __len__ or __getitem__ but works with custom fetch_callback
+        class CustomCollection:
+            def __init__(self, data):
+                self._data = data
 
-        with pytest.raises(TypeError, match="must support indexing and len"):
-            scDataset(NoLen(), Streaming(), batch_size=64)
+            def custom_fetch(self, indices):
+                return self._data[indices]
+
+        data = np.random.randn(100, 10)
+        collection = CustomCollection(data)
+
+        # This should work because we provide a custom fetch_callback
+        # and use explicit indices in the strategy
+        indices = np.arange(100)
+        strategy = Streaming(indices=indices)
+        dataset = scDataset(
+            collection,
+            strategy,
+            batch_size=10,
+            fetch_callback=lambda c, idx: c.custom_fetch(idx),
+        )
+
+        # Should be able to iterate
+        batches = list(dataset)
+        assert len(batches) == 10
+        assert batches[0].shape == (10, 10)
 
     def test_invalid_strategy(self, sample_data):
         """Test that invalid strategy raises error."""
@@ -498,8 +517,9 @@ class TestScDatasetDDP:
 
     def test_ddp_explicit_rank_world_size(self, sample_data):
         """Test explicit rank and world_size parameters."""
+        # Provide explicit seed to avoid needing DDP initialization
         dataset = scDataset(
-            sample_data, Streaming(), batch_size=64, rank=1, world_size=4
+            sample_data, Streaming(), batch_size=64, rank=1, world_size=4, seed=42
         )
         assert dataset.rank == 1
         assert dataset.world_size == 4
@@ -509,12 +529,24 @@ class TestScDatasetDDP:
         # Use larger data to ensure multiple fetches
         large_data = np.random.randn(10000, 50)
 
-        # Simulate 2 ranks
+        # Simulate 2 ranks - provide explicit seed to avoid DDP init requirement
         dataset_rank0 = scDataset(
-            large_data, Streaming(), batch_size=64, fetch_factor=4, rank=0, world_size=2
+            large_data,
+            Streaming(),
+            batch_size=64,
+            fetch_factor=4,
+            rank=0,
+            world_size=2,
+            seed=42,
         )
         dataset_rank1 = scDataset(
-            large_data, Streaming(), batch_size=64, fetch_factor=4, rank=1, world_size=2
+            large_data,
+            Streaming(),
+            batch_size=64,
+            fetch_factor=4,
+            rank=1,
+            world_size=2,
+            seed=42,
         )
 
         # Collect all indices from each rank
@@ -540,8 +572,10 @@ class TestScDatasetDDP:
             sample_data, Streaming(), batch_size=64, world_size=1
         )
 
-        # 4 processes
-        dataset_ddp = scDataset(sample_data, Streaming(), batch_size=64, world_size=4)
+        # 4 processes - provide explicit seed to avoid DDP init requirement
+        dataset_ddp = scDataset(
+            sample_data, Streaming(), batch_size=64, world_size=4, seed=42
+        )
 
         # DDP dataset should report fewer batches per rank
         assert len(dataset_ddp) <= len(dataset_single)
@@ -585,11 +619,12 @@ class TestScDatasetDDP:
         ]
 
         for strategy in strategies:
+            # Provide explicit seed to avoid DDP init requirement
             dataset_rank0 = scDataset(
-                large_data, strategy, batch_size=64, rank=0, world_size=2
+                large_data, strategy, batch_size=64, rank=0, world_size=2, seed=42
             )
             dataset_rank1 = scDataset(
-                large_data, strategy, batch_size=64, rank=1, world_size=2
+                large_data, strategy, batch_size=64, rank=1, world_size=2, seed=42
             )
 
             # Both should produce data
@@ -673,11 +708,24 @@ class TestScDatasetDDP:
 
         # With batch_size=64 and fetch_factor=1, we have 2 fetches total
         # With world_size=8, ranks 2-7 should get 0 data (return 0 length)
+        # Provide explicit seed to avoid DDP init requirement
         dataset_rank0 = scDataset(
-            small_data, Streaming(), batch_size=64, fetch_factor=1, rank=0, world_size=8
+            small_data,
+            Streaming(),
+            batch_size=64,
+            fetch_factor=1,
+            rank=0,
+            world_size=8,
+            seed=42,
         )
         dataset_rank2 = scDataset(
-            small_data, Streaming(), batch_size=64, fetch_factor=1, rank=2, world_size=8
+            small_data,
+            Streaming(),
+            batch_size=64,
+            fetch_factor=1,
+            rank=2,
+            world_size=8,
+            seed=42,
         )
 
         # Rank 0 should have data

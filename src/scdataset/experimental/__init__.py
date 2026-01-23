@@ -7,8 +7,6 @@ and may change in future versions. Use with caution in production code.
 .. warning::
 
    Features in this module are experimental and subject to change.
-   They may be moved to the main package, modified significantly,
-   or removed entirely in future releases.
 
 Available Features
 ------------------
