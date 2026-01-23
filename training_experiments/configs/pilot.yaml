@@ -1,0 +1,58 @@
+# Pilot configuration for quick testing of all strategies
+# Uses only plate1 for training (100K cells) and plate14 for testing (50K cells)
+# Single epoch to verify all strategies work without errors
+
+# Dataset paths
+data:
+  h5ad_dir: "/home/kidara/raid/volume/vevo-data/2025-02-25/original_h5ad"
+  # Pilot mode: use only subset of plates and limit cells
+  train_plates: [1]  # Only plate 1 for training
+  test_plates: [14]  # Only plate 14 for testing
+  max_train_cells: 100000  # Limit to 100K training cells
+  max_test_cells: 50000    # Limit to 50K test cells
+
+# Training parameters
+training:
+  batch_size: 64
+  num_epochs: 1
+  learning_rate: 0.001
+
+# scDataset parameters
+scdataset:
+  fetch_factor: 256
+  num_workers: 8  # Reduced for pilot
+
+# Weight computation for weighted sampling
+weights:
+  min_count_baseline: 1000
+
+# Strategy configurations - all enabled for pilot test
+strategies:
+  streaming:
+    enabled: true
+    shuffle: false
+
+  streaming_buffer:
+    enabled: true
+    shuffle: true
+
+  block_shuffling:
+    enabled: true
+    block_size: 16
+
+  random_sampling:
+    enabled: true
+    block_size: 1
+
+  block_weighted:
+    enabled: true
+    block_size: 16
+
+  true_weighted:
+    enabled: true
+    block_size: 1
+
+# Output
+output:
+  save_dir: "./training_experiments/results/pilot"
+  log_interval: 50  # More frequent logging for pilot

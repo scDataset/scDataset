@@ -4,8 +4,6 @@ Utility functions for scDataset benchmarks.
 This module provides utility functions for transforming and loading data
 from various sources when benchmarking scDataset.
 
-Transforms are imported from scdataset.transforms for consistency.
-
 Utilities
 ---------
 load_config : Load benchmark configuration from YAML
@@ -29,21 +27,13 @@ from tqdm.auto import tqdm
 # Add the src folder to path for development imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-# Import transforms from scdataset - these are the canonical implementations
-try:
-    from scdataset.transforms import (
-        adata_to_mindex,
-        hf_tahoe_to_tensor,
-        bionemo_to_tensor,
-    )
-    from scdataset import MultiIndexable
-except ImportError:
-    from scdataset.transforms import (
-        adata_to_mindex,
-        hf_tahoe_to_tensor,
-        bionemo_to_tensor,
-    )
-    from scdataset.multiindexable import MultiIndexable
+# Import transforms
+from scdataset.transforms import (
+    adata_to_mindex,
+    bionemo_to_tensor,
+    hf_tahoe_to_tensor,
+)
+from scdataset import MultiIndexable
 
 
 def load_config(config_path: str) -> dict:
@@ -175,10 +165,20 @@ def evaluate_loader(
         if hasattr(batch, "X"):
             # AnnCollection batch (from AnnLoader)
             batch_size = batch.X.shape[0]
-            # Check for plate column safely - batch.obs may be AnnCollectionObs
+            # Check for plate column safely - batch.obs may be MapObsView or AnnCollectionObs
+            # MapObsView has .keys() method but not .columns attribute
             try:
-                if hasattr(batch, "obs") and hasattr(batch.obs, "columns") and "plate" in batch.obs.columns:
-                    plates_data = batch.obs["plate"].values
+                obs = batch.obs
+                has_plate = False
+                if hasattr(obs, "columns") and "plate" in obs.columns:
+                    has_plate = True
+                elif hasattr(obs, "keys") and "plate" in obs.keys():
+                    has_plate = True
+
+                if has_plate:
+                    plates_data = obs["plate"]
+                    if hasattr(plates_data, "values"):
+                        plates_data = plates_data.values
             except (KeyError, AttributeError, TypeError):
                 plates_data = None
         elif hasattr(batch, "__getitem__"):

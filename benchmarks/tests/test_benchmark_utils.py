@@ -37,11 +37,20 @@ class MockAnnCollectionObs:
     Mock AnnCollectionObs that does NOT support 'in' operator correctly.
     This simulates the real behavior where 'plate' in batch.obs triggers
     a column lookup via __getitem__, not __contains__.
+
+    Real MapObsView from AnnLoader has:
+    - .keys() method returning list of column names
+    - NO .columns attribute
+    - __getitem__ returns pandas Series
     """
 
     def __init__(self, plates):
         self._plates = plates
-        self.columns = pd.Index(["plate"])
+        self._keys = ["plate"]
+
+    def keys(self):
+        """Return list of column names (like real MapObsView)."""
+        return self._keys
 
     def __getitem__(self, key):
         # This is what happens with AnnCollectionObs - numeric key triggers error

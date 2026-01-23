@@ -74,16 +74,20 @@ def setup_logging(verbose: bool = True) -> logging.Logger:
 
 def run_experiment(
     strategy_name: str,
-    num_epochs: int = 10,
+    num_epochs: int = 1,
     batch_size: int = 64,
     learning_rate: float = 1e-3,
-    fetch_factor: int = 16,
-    num_workers: int = 12,
+    fetch_factor: int = 256,
+    num_workers: int = 8,
     min_count_baseline: int = 1000,
     block_size: Optional[int] = None,
     device: str = "cuda",
     save_dir: Optional[str] = None,
     log_interval: int = 100,
+    train_plates: Optional[list] = None,
+    test_plates: Optional[list] = None,
+    max_train_cells: Optional[int] = None,
+    max_test_cells: Optional[int] = None,
     verbose: bool = True,
     logger: Optional[logging.Logger] = None,
 ) -> Dict[str, Any]:
@@ -115,6 +119,14 @@ def run_experiment(
         Directory to save results
     log_interval : int
         Print progress every N batches
+    train_plates : list, optional
+        List of plate numbers for training. Default: [1-13]
+    test_plates : list, optional
+        List of plate numbers for testing. Default: [14]
+    max_train_cells : int, optional
+        Maximum number of training cells (pilot mode). If None, uses all cells.
+    max_test_cells : int, optional
+        Maximum number of test cells (pilot mode). If None, uses all cells.
     verbose : bool
         Whether to print progress information
     logger : logging.Logger, optional
@@ -156,6 +168,10 @@ def run_experiment(
             num_workers=num_workers,
             min_count_baseline=min_count_baseline,
             block_size=block_size,
+            train_plates=train_plates,
+            test_plates=test_plates,
+            max_train_cells=max_train_cells,
+            max_test_cells=max_test_cells,
             verbose=verbose,
         )
 
@@ -207,6 +223,10 @@ def run_experiment(
                 "min_count_baseline": min_count_baseline,
                 "block_size": block_size,
                 "device": device,
+                "train_plates": train_plates,
+                "test_plates": test_plates,
+                "max_train_cells": max_train_cells,
+                "max_test_cells": max_test_cells,
             },
             "data_info": {"task_dims": task_dims, "feature_dim": feature_dim},
             "training_results": training_results,
@@ -266,16 +286,20 @@ def run_experiment(
 
 
 def run_all_experiments(
-    num_epochs: int = 10,
+    num_epochs: int = 1,
     batch_size: int = 64,
     learning_rate: float = 1e-3,
-    fetch_factor: int = 16,
-    num_workers: int = 12,
+    fetch_factor: int = 256,
+    num_workers: int = 8,
     min_count_baseline: int = 1000,
     block_size: Optional[int] = None,
     device: str = "cuda",
     save_dir: str = "./results",
     strategies: Optional[list] = None,
+    train_plates: Optional[list] = None,
+    test_plates: Optional[list] = None,
+    max_train_cells: Optional[int] = None,
+    max_test_cells: Optional[int] = None,
     verbose: bool = True,
 ) -> Dict[str, Dict[str, Any]]:
     """
@@ -303,6 +327,14 @@ def run_all_experiments(
         Directory to save results
     strategies : list, optional
         List of strategies to run. If None, runs all strategies.
+    train_plates : list, optional
+        List of plate numbers for training. Default: [1-13]
+    test_plates : list, optional
+        List of plate numbers for testing. Default: [14]
+    max_train_cells : int, optional
+        Maximum number of training cells (pilot mode). If None, uses all cells.
+    max_test_cells : int, optional
+        Maximum number of test cells (pilot mode). If None, uses all cells.
     verbose : bool
         Whether to print progress information
 
@@ -328,6 +360,10 @@ def run_all_experiments(
             block_size=block_size,
             device=device,
             save_dir=save_dir,
+            train_plates=train_plates,
+            test_plates=test_plates,
+            max_train_cells=max_train_cells,
+            max_test_cells=max_test_cells,
             verbose=verbose,
         )
         all_results[strategy_name] = results
@@ -448,6 +484,21 @@ def main():
         help="Print progress every N batches (overrides config)",
     )
 
+    # Pilot mode arguments
+    parser.add_argument(
+        "--max_train_cells",
+        type=int,
+        default=None,
+        help="Max training cells for pilot mode (overrides config)",
+    )
+
+    parser.add_argument(
+        "--max_test_cells",
+        type=int,
+        default=None,
+        help="Max test cells for pilot mode (overrides config)",
+    )
+
     args = parser.parse_args()
 
     # Load configuration from YAML file
@@ -465,6 +516,8 @@ def main():
         block_size=args.block_size,
         save_dir=args.save_dir,
         log_interval=args.log_interval,
+        max_train_cells=args.max_train_cells,
+        max_test_cells=args.max_test_cells,
     )
 
     # Set up logging
@@ -494,6 +547,10 @@ def main():
             block_size=merged["block_size"],
             device=args.device,
             save_dir=merged["save_dir"],
+            train_plates=merged["train_plates"],
+            test_plates=merged["test_plates"],
+            max_train_cells=merged["max_train_cells"],
+            max_test_cells=merged["max_test_cells"],
         )
 
         logger.info("=" * 60)
@@ -528,6 +585,10 @@ def main():
             device=args.device,
             save_dir=merged["save_dir"],
             log_interval=merged["log_interval"],
+            train_plates=merged["train_plates"],
+            test_plates=merged["test_plates"],
+            max_train_cells=merged["max_train_cells"],
+            max_test_cells=merged["max_test_cells"],
             logger=logger,
         )
 

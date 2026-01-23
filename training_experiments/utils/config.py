@@ -77,6 +77,10 @@ def merge_config_with_args(
     block_size: Optional[int] = None,
     save_dir: Optional[str] = None,
     log_interval: Optional[int] = None,
+    train_plates: Optional[list] = None,
+    test_plates: Optional[list] = None,
+    max_train_cells: Optional[int] = None,
+    max_test_cells: Optional[int] = None,
 ) -> Dict[str, Any]:
     """
     Merge configuration with command-line arguments.
@@ -105,6 +109,14 @@ def merge_config_with_args(
         Override save directory
     log_interval : int, optional
         Override log interval
+    train_plates : list, optional
+        Override training plates
+    test_plates : list, optional
+        Override test plates
+    max_train_cells : int, optional
+        Override max training cells (pilot mode)
+    max_test_cells : int, optional
+        Override max test cells (pilot mode)
 
     Returns
     -------
@@ -116,6 +128,7 @@ def merge_config_with_args(
     scdataset = config.get("scdataset", {})
     weights = config.get("weights", {})
     output = config.get("output", {})
+    data = config.get("data", {})
 
     # Apply CLI overrides (None means use config value)
     merged = {
@@ -130,10 +143,10 @@ def merge_config_with_args(
         else training.get("learning_rate", 0.001),
         "fetch_factor": fetch_factor
         if fetch_factor is not None
-        else scdataset.get("fetch_factor", 16),
+        else scdataset.get("fetch_factor", 256),
         "num_workers": num_workers
         if num_workers is not None
-        else scdataset.get("num_workers", 12),
+        else scdataset.get("num_workers", 8),
         "min_count_baseline": min_count_baseline
         if min_count_baseline is not None
         else weights.get("min_count_baseline", 1000),
@@ -144,6 +157,19 @@ def merge_config_with_args(
         "log_interval": log_interval
         if log_interval is not None
         else output.get("log_interval", 100),
+        # Pilot mode options
+        "train_plates": train_plates
+        if train_plates is not None
+        else data.get("train_plates"),
+        "test_plates": test_plates
+        if test_plates is not None
+        else data.get("test_plates"),
+        "max_train_cells": max_train_cells
+        if max_train_cells is not None
+        else data.get("max_train_cells"),
+        "max_test_cells": max_test_cells
+        if max_test_cells is not None
+        else data.get("max_test_cells"),
     }
 
     return merged

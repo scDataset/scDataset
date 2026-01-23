@@ -15,8 +15,8 @@ training:
 
 # scDataset parameters
 scdataset:
-  fetch_factor: 16
-  num_workers: 12
+  fetch_factor: 256
+  num_workers: 8
 
 # Weight computation for weighted sampling
 weights:
@@ -41,20 +41,20 @@ strategies:
     enabled: true
     shuffle: true
 
-  # 3. Block Shuffling - scDataset with block_size=4
+  # 3. Block Shuffling - scDataset with block_size=16
   block_shuffling:
     enabled: true
-    block_size: 4
+    block_size: 16
 
   # 4. Random Sampling - Full shuffling (block_size=1)
   random_sampling:
     enabled: true
     block_size: 1
 
-  # 5. Block Weighted Sampling - Weighted with block_size=4
+  # 5. Block Weighted Sampling - Weighted with block_size=16
   block_weighted:
     enabled: true
-    block_size: 4
+    block_size: 16
 
   # 6. True Weighted Sampling - Weighted with block_size=1
   true_weighted:
@@ -63,5 +63,5 @@ strategies:
 
 # Output
 output:
-  save_dir: "./results"
-  log_interval: 100
+  save_dir: "./training_experiments/results/main"
+  log_interval: 1000

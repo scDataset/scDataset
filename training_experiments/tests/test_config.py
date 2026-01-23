@@ -124,8 +124,8 @@ class TestMergeConfigWithArgs:
         assert merged["batch_size"] == 64
         assert merged["num_epochs"] == 1
         assert merged["learning_rate"] == 0.001
-        assert merged["fetch_factor"] == 16
-        assert merged["num_workers"] == 12
+        assert merged["fetch_factor"] == 256
+        assert merged["num_workers"] == 8  # Default from config.py
         assert merged["min_count_baseline"] == 1000
 
 

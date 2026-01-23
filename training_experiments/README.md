@@ -28,18 +28,18 @@ We compare 6 data loading strategies:
 2. **Streaming with Buffer** - Sequential with buffer-level shuffling like HuggingFace/Ray
    (`Streaming(shuffle=True)`)
 
-3. **Block Shuffling** - scDataset with block_size=4, fetch_factor=16
-   (`BlockShuffling(block_size=4)`)
+3. **Block Shuffling** - scDataset with block_size=16, fetch_factor=256
+   (`BlockShuffling(block_size=16)`)
 
-4. **Random Sampling** - Full shuffling without replacement (block_size=1, fetch_factor=16)
+4. **Random Sampling** - Full shuffling without replacement (block_size=1, fetch_factor=256)
    (`BlockShuffling(block_size=1)`)
 
 5. **Block Weighted Sampling** - Weighted sampling with replacement using balanced weights
-   for (cell_line, drug) combinations, with block_size=4, fetch_factor=16
-   (`BlockWeightedSampling(block_size=4)`)
+   for (cell_line, drug) combinations, with block_size=16, fetch_factor=256
+   (`BlockWeightedSampling(block_size=16)`)
 
 6. **True Weighted Sampling** - Weighted sampling with block_size=1 to mimic true weighted
-   sampling, fetch_factor=16 (`BlockWeightedSampling(block_size=1)`)
+   sampling, fetch_factor=256 (`BlockWeightedSampling(block_size=1)`)
 
 ## Weight Calculation
 
@@ -85,21 +85,21 @@ You can modify the path in `configs/default.yaml` or `data/loader.py`.
 ### Run a single experiment
 
 ```bash
-python -m training_experiments.experiments.run_all --strategy streaming --epochs 10
+python -m training_experiments.experiments.run_all --strategy streaming --epochs 1
 ```
 
 Available strategies:
 - `streaming` - Sequential without shuffling
 - `streaming_buffer` - Sequential with buffer shuffling
-- `block_shuffling` - Block shuffling with block_size=4
+- `block_shuffling` - Block shuffling with block_size=16
 - `random` - Random sampling (block_size=1)
-- `weighted_block` - Weighted sampling with block_size=4
+- `weighted_block` - Weighted sampling with block_size=16
 - `weighted_true` - Weighted sampling with block_size=1
 
 ### Run all experiments
 
 ```bash
-python -m training_experiments.experiments.run_all --all --epochs 10
+python -m training_experiments.experiments.run_all --all --epochs 1
 ```
 
 ### Configuration
@@ -114,7 +114,7 @@ python -m training_experiments.experiments.run_all --config my_config.yaml --all
 
 **Overriding specific values from CLI:**
 ```bash
-python -m training_experiments.experiments.run_all --batch_size 128 --epochs 5 --all
+python -m training_experiments.experiments.run_all --batch_size 128 --epochs 1 --all
 ```
 
 CLI arguments always override config file values.
@@ -135,8 +135,8 @@ training:
 
 # scDataset parameters
 scdataset:
-  fetch_factor: 16
-  num_workers: 12
+  fetch_factor: 256
+  num_workers: 8
 
 # Weight computation for weighted sampling
 weights:
@@ -152,13 +152,13 @@ strategies:
     shuffle: true
   block_shuffling:
     enabled: true
-    block_size: 4
+    block_size: 16
   random_sampling:
     enabled: true
     block_size: 1
   block_weighted:
     enabled: true
-    block_size: 4
+    block_size: 16
   true_weighted:
     enabled: true
     block_size: 1
@@ -168,6 +168,33 @@ output:
   save_dir: "./results"
   log_interval: 100
 ```
+
+## Pilot Experiments (Quick Testing)
+
+Before running the full experiments, you can run a pilot to verify all strategies work.
+The pilot uses the same code as the full experiment, just with a different config:
+
+```bash
+# Run pilot with all 6 strategies (100K train cells, 50K test cells, 1 epoch)
+python -m training_experiments.experiments.run_all --config training_experiments/configs/pilot.yaml --all
+
+# Run pilot with specific strategy
+python -m training_experiments.experiments.run_all --config training_experiments/configs/pilot.yaml --strategy streaming
+
+# Override cell counts from command line
+python -m training_experiments.experiments.run_all --config training_experiments/configs/pilot.yaml --all --max_train_cells 50000 --max_test_cells 25000
+```
+
+The pilot config (`configs/pilot.yaml`):
+- Uses only plate 1 for training and plate 14 for testing
+- Limits to 100,000 training cells and 50,000 test cells
+- Runs for a single epoch
+- Tests all 6 strategies to ensure they work without errors
+
+This is useful for:
+- Verifying the installation and data paths are correct
+- Quick debugging and development
+- Testing code changes before full experiments
 
 ## Plotting Results
 
@@ -225,7 +252,8 @@ training_experiments/
 │   ├── __init__.py             # Result loading utilities
 │   └── plotting.py             # Plotting utilities
 ├── configs/
-│   └── default.yaml            # Default configuration
+│   ├── default.yaml            # Default configuration
+│   └── pilot.yaml              # Pilot experiment configuration
 ├── data/
 │   ├── __init__.py
 │   ├── loader.py               # Tahoe dataset loading utilities
@@ -233,7 +261,7 @@ training_experiments/
 │   └── mappings/               # Label mapping pickle files
 ├── experiments/
 │   ├── __init__.py
-│   └── run_all.py              # Run experiments
+│   └── run_all.py              # Run experiments (full or pilot via config)
 ├── models/
 │   ├── __init__.py
 │   └── linear.py               # Multi-task linear classifier

@@ -220,20 +220,20 @@ class TestDataLoaderInvalidStrategy:
 class TestStrategyWorkerConfig:
     """Tests for worker configuration based on strategy."""
 
-    def test_streaming_strategies_require_single_worker(self):
-        """Test that streaming strategies should use num_workers=1."""
+    def test_streaming_strategies_use_zero_workers(self):
+        """Test that streaming strategies should use num_workers=0 for best performance."""
         # Both STRATEGY_STREAMING and STRATEGY_STREAMING_BUFFER
-        # should use single worker due to shuffling semantics
+        # should use num_workers=0 (multiprocessing overhead exceeds any benefit)
         from training_experiments.data.loader import (
             STRATEGY_STREAMING,
             STRATEGY_STREAMING_BUFFER,
         )
 
-        # These are the strategies that should use single worker
-        single_worker_strategies = {STRATEGY_STREAMING, STRATEGY_STREAMING_BUFFER}
+        # These are the strategies that should use zero workers
+        zero_worker_strategies = {STRATEGY_STREAMING, STRATEGY_STREAMING_BUFFER}
 
-        assert STRATEGY_STREAMING in single_worker_strategies
-        assert STRATEGY_STREAMING_BUFFER in single_worker_strategies
+        assert STRATEGY_STREAMING in zero_worker_strategies
+        assert STRATEGY_STREAMING_BUFFER in zero_worker_strategies
 
     def test_block_strategies_allow_multiple_workers(self):
         """Test that block-based strategies can use multiple workers."""

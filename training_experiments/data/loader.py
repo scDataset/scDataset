@@ -5,9 +5,9 @@ This module provides data loading utilities for the Tahoe-100M dataset,
 supporting all 6 data loading strategies:
 1. Streaming
 2. Streaming with Buffer
-3. Block Shuffling (block_size=4)
+3. Block Shuffling (block_size>1)
 4. Random Sampling (block_size=1)
-5. Block Weighted Sampling (block_size=4)
+5. Block Weighted Sampling (block_size>1)
 6. True Weighted Sampling (block_size=1)
 """
 
@@ -48,8 +48,9 @@ class TahoeDataLoader:
     """
     Data loader for Tahoe-100M dataset using h5ad files and AnnCollection.
 
-    This loader creates train/test splits using plates 1-13 for training and
-    plate 14 for testing. It supports all 6 data loading strategies.
+    This loader creates train/test splits using configurable plates for training
+    and testing. It supports all 6 data loading strategies and an optional
+    pilot mode with limited cells for quick testing.
 
     Parameters
     ----------
@@ -58,12 +59,24 @@ class TahoeDataLoader:
     label_dir : str, optional
         Directory containing label mapping pickle files.
         If None, uses the default mappings directory within training_experiments.
+    train_plates : list, optional
+        List of plate numbers for training. Default: [1-13]
+    test_plates : list, optional
+        List of plate numbers for testing. Default: [14]
+    max_train_cells : int, optional
+        Maximum number of training cells. If None, uses all cells.
+    max_test_cells : int, optional
+        Maximum number of test cells. If None, uses all cells.
     """
 
     def __init__(
         self,
         data_dir: str = "/home/kidara/raid/volume/vevo-data/2025-02-25/original_h5ad",
         label_dir: str = None,
+        train_plates: list = None,
+        test_plates: list = None,
+        max_train_cells: int = None,
+        max_test_cells: int = None,
     ):
         """
         Initialize the Tahoe data loader.
@@ -75,21 +88,43 @@ class TahoeDataLoader:
         label_dir : str, optional
             Directory containing label mapping pickle files.
             If None, uses the default mappings directory.
+        train_plates : list, optional
+            List of plate numbers for training. Default: [1-13]
+        test_plates : list, optional
+            List of plate numbers for testing. Default: [14]
+        max_train_cells : int, optional
+            Maximum number of training cells. If None, uses all cells.
+        max_test_cells : int, optional
+            Maximum number of test cells. If None, uses all cells.
         """
         self.data_dir = data_dir
         self.label_dir = label_dir
         self.label_encoder = LabelEncoder(label_dir)
+
+        # Default plates if not specified
+        self.train_plates = (
+            train_plates if train_plates is not None else list(range(1, 14))
+        )
+        self.test_plates = test_plates if test_plates is not None else [14]
+
+        # Cell limits for pilot mode
+        self.max_train_cells = max_train_cells
+        self.max_test_cells = max_test_cells
 
         # Collections for train and test
         self.train_collection: Optional[AnnCollection] = None
         self.test_collection: Optional[AnnCollection] = None
         self._feature_dim: Optional[int] = None
 
+        # Indices for limited cells (pilot mode)
+        self._train_indices: Optional[np.ndarray] = None
+        self._test_indices: Optional[np.ndarray] = None
+
     def create_collections(self, verbose: bool = True) -> None:
         """
         Create AnnCollection objects for train and test sets.
 
-        Training uses plates 1-13, testing uses plate 14.
+        Uses configured plates and applies cell limits if specified.
 
         Parameters
         ----------
@@ -97,11 +132,13 @@ class TahoeDataLoader:
             Whether to print progress information
         """
         if verbose:
-            print("Creating AnnCollection for training set (plates 1-13)...")
+            print(
+                f"Creating AnnCollection for training set (plates {self.train_plates})..."
+            )
 
-        # Load training plates (1-13)
+        # Load training plates
         train_adatas = []
-        for i in range(1, 14):
+        for i in self.train_plates:
             path = f"{self.data_dir}/plate{i}_filt_Vevo_Tahoe100M_WServicesFrom_ParseGigalab.h5ad"
             if os.path.exists(path):
                 adata = ad.read_h5ad(path, backed="r")
@@ -116,27 +153,58 @@ class TahoeDataLoader:
 
         self.train_collection = AnnCollection(train_adatas)
         self._feature_dim = self.train_collection.n_vars
+        total_train = self.train_collection.n_obs
 
-        if verbose:
-            print(
-                f"Training set: {self.train_collection.n_obs:,} cells, "
-                f"{self._feature_dim:,} genes"
-            )
-
-        # Load test plate (14)
-        if verbose:
-            print("Creating AnnCollection for test set (plate 14)...")
-
-        test_path = f"{self.data_dir}/plate14_filt_Vevo_Tahoe100M_WServicesFrom_ParseGigalab.h5ad"
-
-        if os.path.exists(test_path):
-            test_adata = ad.read_h5ad(test_path, backed="r")
-            test_adata.obs = test_adata.obs[["cell_line", "drug"]]
-            self.test_collection = AnnCollection([test_adata])
+        # Apply cell limit for pilot mode
+        # Always use the first N cells (sequential) to preserve on-disk order.
+        # The sampling strategy will handle shuffling if needed.
+        if self.max_train_cells is not None and total_train > self.max_train_cells:
+            self._train_indices = np.arange(self.max_train_cells)
             if verbose:
-                print(f"Test set: {self.test_collection.n_obs:,} cells")
+                print(
+                    f"Training set: {total_train:,} cells available, "
+                    f"using first {self.max_train_cells:,} (pilot mode)"
+                )
         else:
-            raise FileNotFoundError(f"Test file not found: {test_path}")
+            self._train_indices = np.arange(total_train)
+            if verbose:
+                print(
+                    f"Training set: {total_train:,} cells, "
+                    f"{self._feature_dim:,} genes"
+                )
+
+        # Load test plates
+        if verbose:
+            print(f"Creating AnnCollection for test set (plates {self.test_plates})...")
+
+        test_adatas = []
+        for i in self.test_plates:
+            test_path = f"{self.data_dir}/plate{i}_filt_Vevo_Tahoe100M_WServicesFrom_ParseGigalab.h5ad"
+            if os.path.exists(test_path):
+                test_adata = ad.read_h5ad(test_path, backed="r")
+                test_adata.obs = test_adata.obs[["cell_line", "drug"]]
+                test_adatas.append(test_adata)
+            elif verbose:
+                print(f"Warning: {test_path} not found")
+
+        if not test_adatas:
+            raise FileNotFoundError(f"No test files found in {self.data_dir}")
+
+        self.test_collection = AnnCollection(test_adatas)
+        total_test = self.test_collection.n_obs
+
+        # Apply cell limit for pilot mode
+        # Always use the FIRST N cells (sequential) for consistent evaluation.
+        if self.max_test_cells is not None and total_test > self.max_test_cells:
+            self._test_indices = np.arange(self.max_test_cells)
+            if verbose:
+                print(
+                    f"Test set: {total_test:,} cells available, using first {self.max_test_cells:,} (pilot mode)"
+                )
+        else:
+            self._test_indices = np.arange(total_test)
+            if verbose:
+                print(f"Test set: {total_test:,} cells")
 
     @property
     def feature_dim(self) -> int:
@@ -144,6 +212,20 @@ class TahoeDataLoader:
         if self._feature_dim is None:
             raise RuntimeError("Call create_collections() first")
         return self._feature_dim
+
+    @property
+    def train_indices(self) -> np.ndarray:
+        """Get the training indices (respects max_train_cells limit)."""
+        if self._train_indices is None:
+            raise RuntimeError("Call create_collections() first")
+        return self._train_indices
+
+    @property
+    def test_indices(self) -> np.ndarray:
+        """Get the test indices (respects max_test_cells limit)."""
+        if self._test_indices is None:
+            raise RuntimeError("Call create_collections() first")
+        return self._test_indices
 
     @property
     def task_dims(self) -> Dict[str, int]:
@@ -213,13 +295,13 @@ class TahoeDataLoader:
         Returns
         -------
         numpy.ndarray
-            Weight for each cell in the training collection
+            Weight for each cell in the training indices (may be subset)
         """
         if self.train_collection is None:
             raise RuntimeError("Call create_collections() first")
 
-        # Get observation data
-        obs = self.train_collection.obs
+        # Get observation data for training indices only
+        obs = self.train_collection.obs.iloc[self._train_indices]
         cell_lines = obs["cell_line"].values
         drugs = obs["drug"].values
 
@@ -240,8 +322,8 @@ class TahoeDataLoader:
         self,
         strategy_name: str,
         batch_size: int = 64,
-        fetch_factor: int = 16,
-        num_workers: int = 12,
+        fetch_factor: int = 256,
+        num_workers: int = 8,
         min_count_baseline: int = 1000,
         block_size: int | None = None,
         verbose: bool = True,
@@ -265,9 +347,9 @@ class TahoeDataLoader:
             weighted strategies)
         block_size : int, optional
             Block size for block-based strategies. If None, uses defaults:
-            - block_shuffling: 4
+            - block_shuffling: 16
             - random_sampling: 1
-            - block_weighted: 4
+            - block_weighted: 16
             - true_weighted: 1
         verbose : bool
             Whether to print progress information
@@ -294,41 +376,47 @@ class TahoeDataLoader:
             return batch.to_adata()
 
         # Determine train workers based on strategy
-        # Streaming strategies don't support multiprocessing
+        # Streaming strategies should use num_workers=0 for best performance
+        # (multiprocessing overhead exceeds any benefit for streaming)
         if strategy_name in (STRATEGY_STREAMING, STRATEGY_STREAMING_BUFFER):
-            train_workers = 1
+            train_workers = 0
         else:
             train_workers = num_workers
 
-        # Create training strategy
+        # Get training indices (may be limited for pilot mode)
+        train_indices = self._train_indices
+
+        # Create training strategy with indices
         if strategy_name == STRATEGY_STREAMING:
-            strategy = Streaming(indices=None, shuffle=False)
+            strategy = Streaming(indices=train_indices, shuffle=False)
 
         elif strategy_name == STRATEGY_STREAMING_BUFFER:
-            strategy = Streaming(indices=None, shuffle=True)
+            strategy = Streaming(indices=train_indices, shuffle=True)
 
         elif strategy_name == STRATEGY_BLOCK_SHUFFLING:
-            # Default block_size=4 for block shuffling
-            effective_block_size = block_size if block_size is not None else 4
+            # Default block_size=16 for block shuffling
+            effective_block_size = block_size if block_size is not None else 16
             strategy = BlockShuffling(
-                block_size=effective_block_size, indices=None, drop_last=False
+                block_size=effective_block_size, indices=train_indices, drop_last=False
             )
 
         elif strategy_name == STRATEGY_RANDOM_SAMPLING:
             # block_size=1 mimics true random shuffling
             effective_block_size = block_size if block_size is not None else 1
             strategy = BlockShuffling(
-                block_size=effective_block_size, indices=None, drop_last=False
+                block_size=effective_block_size, indices=train_indices, drop_last=False
             )
 
         elif strategy_name == STRATEGY_BLOCK_WEIGHTED:
-            # Default block_size=4 for block weighted sampling
-            effective_block_size = block_size if block_size is not None else 4
+            # Default block_size=16 for block weighted sampling
+            effective_block_size = block_size if block_size is not None else 16
             weights = self._compute_weights(min_count_baseline, verbose)
+            # Weights are computed for train_indices, pass indices to strategy
             strategy = BlockWeightedSampling(
                 block_size=effective_block_size,
+                indices=train_indices,
                 weights=weights,
-                total_size=len(self.train_collection),
+                total_size=len(train_indices),
                 replace=True,
             )
 
@@ -336,10 +424,12 @@ class TahoeDataLoader:
             # block_size=1 for true weighted sampling
             effective_block_size = block_size if block_size is not None else 1
             weights = self._compute_weights(min_count_baseline, verbose)
+            # Weights are computed for train_indices, pass indices to strategy
             strategy = BlockWeightedSampling(
                 block_size=effective_block_size,
+                indices=train_indices,
                 weights=weights,
-                total_size=len(self.train_collection),
+                total_size=len(train_indices),
                 replace=True,
             )
 
@@ -354,8 +444,8 @@ class TahoeDataLoader:
             drop_last=False,
         )
 
-        # Create test dataset (always use streaming without shuffle)
-        test_strategy = Streaming(indices=None, shuffle=False)
+        # Create test dataset with limited indices (always use streaming without shuffle)
+        test_strategy = Streaming(indices=self._test_indices, shuffle=False)
         test_dataset = scDataset(
             data_collection=self.test_collection,
             strategy=test_strategy,
@@ -383,6 +473,8 @@ class TahoeDataLoader:
             print(f"  Train workers: {train_workers}")
             print(f"  Batch size: {batch_size}")
             print(f"  Fetch factor: {fetch_factor}")
+            print(f"  Train cells: {len(train_indices):,}")
+            print(f"  Test cells: {len(self._test_indices):,}")
 
         return train_loader, test_loader
 
@@ -391,11 +483,15 @@ def create_dataloaders(
     strategy_name: str,
     batch_size: int = 64,
     fetch_factor: int = 16,
-    num_workers: int = 12,
+    num_workers: int = 8,
     data_dir: str = "/home/kidara/raid/volume/vevo-data/2025-02-25/original_h5ad",
     label_dir: str = None,
     min_count_baseline: int = 1000,
     block_size: int | None = None,
+    train_plates: list = None,
+    test_plates: list = None,
+    max_train_cells: int = None,
+    max_test_cells: int = None,
     verbose: bool = True,
 ) -> Tuple[DataLoader, DataLoader, LabelEncoder, int]:
     """
@@ -421,6 +517,14 @@ def create_dataloaders(
         Minimum count baseline for weight computation
     block_size : int, optional
         Block size for block-based strategies. If None, uses defaults.
+    train_plates : list, optional
+        List of plate numbers for training. Default: [1-13]
+    test_plates : list, optional
+        List of plate numbers for testing. Default: [14]
+    max_train_cells : int, optional
+        Maximum number of training cells. If None, uses all cells.
+    max_test_cells : int, optional
+        Maximum number of test cells. If None, uses all cells.
     verbose : bool
         Whether to print progress information
 
@@ -429,7 +533,14 @@ def create_dataloaders(
     tuple
         (train_loader, test_loader, label_encoder, feature_dim)
     """
-    loader = TahoeDataLoader(data_dir=data_dir, label_dir=label_dir)
+    loader = TahoeDataLoader(
+        data_dir=data_dir,
+        label_dir=label_dir,
+        train_plates=train_plates,
+        test_plates=test_plates,
+        max_train_cells=max_train_cells,
+        max_test_cells=max_test_cells,
+    )
     loader.create_collections(verbose=verbose)
 
     train_loader, test_loader = loader.create_dataloaders(

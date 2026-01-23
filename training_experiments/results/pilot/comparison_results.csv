@@ -1,0 +1,37 @@
+Task,Method,Macro F1-score,Error
+Cell line,Streaming,0.9122049227257665,0.0
+Drug,Streaming,0.0,0.0
+MOA (broad),Streaming,0.24901794605931216,0.0
+MOA (fine),Streaming,0.0003038540375876423,0.0
+Cell line,Streaming (buffer),0.9119788668180235,0.0
+Drug,Streaming (buffer),0.0,0.0
+MOA (broad),Streaming (buffer),0.2296733069785122,0.0
+MOA (fine),Streaming (buffer),0.03442424883988653,0.0
+Cell line,"Block size = 4
+Fetch factor = 16",0.9128688560799386,0.0
+Drug,"Block size = 4
+Fetch factor = 16",0.0,0.0
+MOA (broad),"Block size = 4
+Fetch factor = 16",0.20372854184941563,0.0
+MOA (fine),"Block size = 4
+Fetch factor = 16",0.026537775994563643,0.0
+Cell line,Random Sampling,0.9109948766986911,0.0
+Drug,Random Sampling,0.0,0.0
+MOA (broad),Random Sampling,0.18585489167277225,0.0
+MOA (fine),Random Sampling,0.030954774952759122,0.0
+Cell line,"Block Weighted
+(block_size = 4)",0.9129831588433938,0.0
+Drug,"Block Weighted
+(block_size = 4)",0.0,0.0
+MOA (broad),"Block Weighted
+(block_size = 4)",0.19257885628932028,0.0
+MOA (fine),"Block Weighted
+(block_size = 4)",0.03405860480536437,0.0
+Cell line,"True Weighted
+(block_size = 1)",0.9120645652009911,0.0
+Drug,"True Weighted
+(block_size = 1)",0.0,0.0
+MOA (broad),"True Weighted
+(block_size = 1)",0.1829918720777444,0.0
+MOA (fine),"True Weighted
+(block_size = 1)",0.027278735991858566,0.0

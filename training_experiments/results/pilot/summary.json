@@ -1,0 +1,62 @@
+{
+  "streaming": {
+    "status": "success",
+    "final_accuracy": {
+      "cell_line": 0.95844,
+      "drug": 0.0,
+      "moa_broad": 0.56578,
+      "moa_fine": 0.00026
+    },
+    "time": 95.10276222229004
+  },
+  "streaming_buffer": {
+    "status": "success",
+    "final_accuracy": {
+      "cell_line": 0.95768,
+      "drug": 0.0,
+      "moa_broad": 0.49014,
+      "moa_fine": 0.3382
+    },
+    "time": 92.26926565170288
+  },
+  "block_shuffling": {
+    "status": "success",
+    "final_accuracy": {
+      "cell_line": 0.95948,
+      "drug": 0.0,
+      "moa_broad": 0.53002,
+      "moa_fine": 0.17996
+    },
+    "time": 85.86187744140625
+  },
+  "random_sampling": {
+    "status": "success",
+    "final_accuracy": {
+      "cell_line": 0.9599,
+      "drug": 0.0,
+      "moa_broad": 0.55646,
+      "moa_fine": 0.22438
+    },
+    "time": 85.76495337486267
+  },
+  "block_weighted": {
+    "status": "success",
+    "final_accuracy": {
+      "cell_line": 0.95974,
+      "drug": 0.0,
+      "moa_broad": 0.55508,
+      "moa_fine": 0.32104
+    },
+    "time": 86.36236214637756
+  },
+  "true_weighted": {
+    "status": "success",
+    "final_accuracy": {
+      "cell_line": 0.95928,
+      "drug": 0.0,
+      "moa_broad": 0.55562,
+      "moa_fine": 0.21814
+    },
+    "time": 86.06044054031372
+  }
+}
