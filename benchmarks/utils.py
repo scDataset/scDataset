@@ -175,8 +175,12 @@ def evaluate_loader(
         if hasattr(batch, "X"):
             # AnnCollection batch (from AnnLoader)
             batch_size = batch.X.shape[0]
-            if hasattr(batch, "obs") and "plate" in batch.obs:
-                plates_data = batch.obs["plate"].values
+            # Check for plate column safely - batch.obs may be AnnCollectionObs
+            try:
+                if hasattr(batch, "obs") and hasattr(batch.obs, "columns") and "plate" in batch.obs.columns:
+                    plates_data = batch.obs["plate"].values
+            except (KeyError, AttributeError, TypeError):
+                plates_data = None
         elif hasattr(batch, "__getitem__"):
             # Dict-like batch (dict or MultiIndexable from scDataset with adata_to_mindex)
             try:

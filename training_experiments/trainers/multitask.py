@@ -232,7 +232,7 @@ class MultiTaskTrainer:
         self,
         train_loader: DataLoader,
         val_loader: DataLoader,
-        num_epochs: int = 10,
+        num_epochs: int = 1,
         learning_rate: float = 1e-3,
         log_interval: int = 100,
         save_dir: Optional[str] = None,

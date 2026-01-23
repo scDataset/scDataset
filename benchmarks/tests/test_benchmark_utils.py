@@ -16,12 +16,57 @@ import pytest
 # =============================================================================
 
 
+class MockDataFrameObs:
+    """Mock pandas DataFrame-like obs with 'columns' attribute."""
+
+    def __init__(self, plates):
+        self._plates = plates
+        self.columns = ["plate"]  # DataFrame-like columns attribute
+
+    def __getitem__(self, key):
+        if key == "plate":
+            return MagicMock(values=self._plates)
+        raise KeyError(key)
+
+    def __contains__(self, key):
+        return key in self.columns
+
+
+class MockAnnCollectionObs:
+    """
+    Mock AnnCollectionObs that does NOT support 'in' operator correctly.
+    This simulates the real behavior where 'plate' in batch.obs triggers
+    a column lookup via __getitem__, not __contains__.
+    """
+
+    def __init__(self, plates):
+        self._plates = plates
+        self.columns = pd.Index(["plate"])
+
+    def __getitem__(self, key):
+        # This is what happens with AnnCollectionObs - numeric key triggers error
+        if isinstance(key, int):
+            raise KeyError(key)
+        if key == "plate":
+            return MagicMock(values=self._plates)
+        raise KeyError(key)
+
+    def __contains__(self, key):
+        # AnnCollectionObs doesn't implement __contains__ properly
+        # and falls back to __getitem__ which fails for 'plate' key
+        # by treating it as an index lookup
+        raise TypeError("AnnCollectionObs doesn't support 'in' operator directly")
+
+
 class MockAnnDataBatch:
     """Mock AnnData batch with obs attribute (like AnnLoader produces)."""
 
-    def __init__(self, X, plates):
+    def __init__(self, X, plates, use_anncollection_obs=False):
         self.X = X
-        self.obs = {"plate": MagicMock(values=plates)}
+        if use_anncollection_obs:
+            self.obs = MockAnnCollectionObs(plates)
+        else:
+            self.obs = MockDataFrameObs(plates)
 
 
 class MockMultiIndexableBatch:
@@ -50,6 +95,7 @@ class MockLoader:
         self.batch_size = batch_size
         self.num_plates = num_plates
         self._count = 0
+        self._use_anncollection_obs = False
 
     def __iter__(self):
         self._count = 0
@@ -66,7 +112,9 @@ class MockLoader:
         X = np.random.randn(self.batch_size, 100)
 
         if self.batch_type == "anndata":
-            return MockAnnDataBatch(X, plates)
+            return MockAnnDataBatch(X, plates, use_anncollection_obs=self._use_anncollection_obs)
+        elif self.batch_type == "anncollection":
+            return MockAnnDataBatch(X, plates, use_anncollection_obs=True)
         elif self.batch_type == "multiindexable":
             return MockMultiIndexableBatch(X, plates)
         else:
@@ -117,6 +165,30 @@ class TestEvaluateLoaderBatchEntropy:
             "Batch entropy should be > 0 for MultiIndexable batches "
             "(scDataset with adata_to_mindex). If this fails, check that "
             "evaluate_loader handles batch['plate'] correctly. "
+            f"Got: {result['avg_batch_entropy']}"
+        )
+        assert result["std_batch_entropy"] >= 0
+
+    def test_batch_entropy_anncollection_format(self):
+        """
+        Test batch entropy with AnnCollectionObs format (like real AnnLoader).
+
+        This test catches the bug where `"plate" in batch.obs` fails because
+        AnnCollectionObs doesn't implement __contains__ and instead tries to
+        treat the string as an integer index.
+        """
+        from benchmarks.utils import evaluate_loader
+
+        # Create mock loader with AnnCollectionObs-style batches
+        loader = MockLoader("anncollection", num_batches=50, batch_size=64, num_plates=14)
+
+        result = evaluate_loader(loader, test_time_seconds=1, description="Test", warm_up_seconds=0)
+
+        # This test catches the KeyError: 0 bug with AnnCollectionObs
+        assert result["avg_batch_entropy"] > 0, (
+            "Batch entropy should be > 0 for AnnCollectionObs batches. "
+            "If KeyError occurs, check that evaluate_loader uses "
+            "batch.obs.columns instead of 'in batch.obs'. "
             f"Got: {result['avg_batch_entropy']}"
         )
         assert result["std_batch_entropy"] >= 0
