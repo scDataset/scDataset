@@ -1,5 +1,0 @@
-Task,Method,Macro F1-score,Error
-Cell line,Streaming,0.914202358973752,0.0
-Drug,Streaming,0.0013012132102480165,0.0
-MOA (broad),Streaming,0.18537640170908615,0.0
-MOA (fine),Streaming,0.0417217554804945,0.0

@@ -8,7 +8,7 @@
     "fetch_factor": 256,
     "num_workers": 8,
     "min_count_baseline": 1000,
-    "block_size": null,
+    "block_size": 16,
     "device": "cuda",
     "train_plates": null,
     "test_plates": null,

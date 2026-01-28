@@ -12,15 +12,88 @@ from typing import Any, Dict, List, Optional
 
 import pandas as pd
 
-# Strategy display names for plots
+# Strategy display names for plots (base templates)
+# These will be dynamically updated with actual values from results.json
 STRATEGY_DISPLAY_NAMES = {
     "streaming": "Streaming",
     "streaming_buffer": "Streaming (buffer)",
-    "block_shuffling": "Block size = 4\nFetch factor = 16",
+    "block_shuffling": "Block Shuffling",  # Will be updated dynamically
     "random_sampling": "Random Sampling",
-    "block_weighted": "Block Weighted\n(block_size = 4)",
-    "true_weighted": "True Weighted\n(block_size = 1)",
+    "block_weighted": "Block Weighted",  # Will be updated dynamically
+    "true_weighted": "True Weighted",
 }
+
+
+def get_strategy_display_name(
+    strategy: str, result: Optional[Dict[str, Any]] = None
+) -> str:
+    """
+    Get display name for a strategy, dynamically using config values if available.
+
+    Parameters
+    ----------
+    strategy : str
+        Strategy key name
+    result : dict, optional
+        Result dictionary containing experiment_config
+
+    Returns
+    -------
+    str
+        Human-readable display name with actual block_size/fetch_factor values
+    """
+    # Base names
+    base_names = {
+        "streaming": "Streaming",
+        "streaming_buffer": "Streaming (buffer)",
+        "random_sampling": "Random Sampling",
+        "true_weighted": "True Weighted",
+        "block_shuffling": "Block Shuffling",
+        "block_weighted": "Block Weighted",
+    }
+
+    base_name = base_names.get(strategy, strategy)
+
+    # If no result or no config, return base name
+    if result is None:
+        return base_name
+
+    config = result.get("experiment_config", {})
+    block_size = config.get("block_size")
+    fetch_factor = config.get("fetch_factor")
+
+    # For block_shuffling, show "Block size = X\nFetch factor = Y"
+    if strategy == "block_shuffling":
+        lines = []
+        if block_size is not None:
+            lines.append(f"Block size = {block_size}")
+        if fetch_factor is not None:
+            lines.append(f"Fetch factor = {fetch_factor}")
+        if lines:
+            return "\n".join(lines)
+        return base_name
+
+    # For block_weighted, show similar format
+    if strategy == "block_weighted":
+        parts = []
+        if block_size is not None:
+            parts.append(f"block_size = {block_size}")
+        if parts:
+            return f"Block Weighted\n({', '.join(parts)})"
+        return base_name
+
+    # For true_weighted, show block_size=1
+    if strategy == "true_weighted":
+        if block_size is not None:
+            return f"True Weighted\n(block_size = {block_size})"
+        return base_name
+
+    # For random_sampling, just use base name
+    if strategy == "random_sampling":
+        return base_name
+
+    return base_name
+
 
 # Task display names for plots
 TASK_DISPLAY_NAMES = {
@@ -68,18 +141,18 @@ def load_experiment_results(
         # Look for results in subdirectories
         for subdir in results_path.iterdir():
             if subdir.is_dir() and strategy in subdir.name:
-                # Try to load results.pkl
-                pkl_file = subdir / "results.pkl"
-                if pkl_file.exists():
-                    with open(pkl_file, "rb") as f:
-                        results[strategy] = pickle.load(f)
-                    break
-
-                # Fallback to results.json
+                # Prefer results.json (editable) over results.pkl
                 json_file = subdir / "results.json"
                 if json_file.exists():
                     with open(json_file) as f:
                         results[strategy] = json.load(f)
+                    break
+
+                # Fallback to results.pkl
+                pkl_file = subdir / "results.pkl"
+                if pkl_file.exists():
+                    with open(pkl_file, "rb") as f:
+                        results[strategy] = pickle.load(f)
                     break
 
     return results
@@ -121,7 +194,7 @@ def extract_metrics(
                 {
                     "Task": TASK_DISPLAY_NAMES[task],
                     "Task_key": task,
-                    "Method": STRATEGY_DISPLAY_NAMES.get(strategy, strategy),
+                    "Method": get_strategy_display_name(strategy, result),
                     "Strategy_key": strategy,
                     "Value": value,
                 }
@@ -219,7 +292,7 @@ def create_comparison_dataframe(
             data.append(
                 {
                     "Task": TASK_DISPLAY_NAMES[task],
-                    "Method": STRATEGY_DISPLAY_NAMES[strategy],
+                    "Method": get_strategy_display_name(strategy, result),
                     "Macro F1-score": value,
                     "Error": 0.0,  # Can be updated with std if multiple runs
                 }
@@ -250,7 +323,7 @@ def get_time_comparison(results: Dict[str, Dict[str, Any]]) -> pd.DataFrame:
 
         data.append(
             {
-                "Method": STRATEGY_DISPLAY_NAMES.get(strategy, strategy),
+                "Method": get_strategy_display_name(strategy, result),
                 "Strategy_key": strategy,
                 "Time (s)": result.get("experiment_time_seconds", 0),
             }
@@ -292,7 +365,7 @@ def print_results_table(
             value = final_metrics.get(metric_key, 0.0)
             values.append(f"{value:.4f}")
 
-        name = STRATEGY_DISPLAY_NAMES.get(strategy, strategy).replace("\n", " ")
+        name = get_strategy_display_name(strategy, result).replace("\n", " ")
         print(
             f"{name:<25} | {values[0]:>10} | {values[1]:>10} | {values[2]:>10} | {values[3]:>10}"
         )

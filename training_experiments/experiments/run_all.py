@@ -301,6 +301,7 @@ def run_all_experiments(
     max_train_cells: Optional[int] = None,
     max_test_cells: Optional[int] = None,
     verbose: bool = True,
+    config: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Dict[str, Any]]:
     """
     Run all experiments with all strategies.
@@ -320,7 +321,8 @@ def run_all_experiments(
     min_count_baseline : int
         Minimum count baseline for weight computation
     block_size : int, optional
-        Block size for block-based strategies. If None, uses defaults.
+        Block size for block-based strategies. If None, uses strategy-specific
+        values from config, or hardcoded defaults if config is not provided.
     device : str
         Device to use for training
     save_dir : str
@@ -337,6 +339,9 @@ def run_all_experiments(
         Maximum number of test cells (pilot mode). If None, uses all cells.
     verbose : bool
         Whether to print progress information
+    config : dict, optional
+        Full configuration dictionary. Used to get strategy-specific block_size
+        values when block_size parameter is None.
 
     Returns
     -------
@@ -349,6 +354,13 @@ def run_all_experiments(
     all_results = {}
 
     for strategy_name in strategies:
+        # Get strategy-specific block_size from config if not overridden
+        strategy_block_size = block_size
+        if strategy_block_size is None and config is not None:
+            strategy_block_size = get_block_size_for_strategy(
+                config, strategy_name, None
+            )
+
         results = run_experiment(
             strategy_name=strategy_name,
             num_epochs=num_epochs,
@@ -357,7 +369,7 @@ def run_all_experiments(
             fetch_factor=fetch_factor,
             num_workers=num_workers,
             min_count_baseline=min_count_baseline,
-            block_size=block_size,
+            block_size=strategy_block_size,
             device=device,
             save_dir=save_dir,
             train_plates=train_plates,
@@ -551,6 +563,7 @@ def main():
             test_plates=merged["test_plates"],
             max_train_cells=merged["max_train_cells"],
             max_test_cells=merged["max_test_cells"],
+            config=config,  # Pass config for strategy-specific block_size
         )
 
         logger.info("=" * 60)

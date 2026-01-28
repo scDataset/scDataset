@@ -5,6 +5,7 @@ results_path: "./experiments/block_size_fetch_factor_eval_anncollection_random.c
 batch_sizes: [64]
 block_sizes: [1, 4, 16, 64, 256, 1024]
 fetch_factors: [1, 4, 16, 64, 256, 1024]
-num_workers_options: [1]
+num_workers_options: [0]
 collection_type: "anncollection"
-test_modes: "random"
+# Test modes: "all" (stream, random, weighted), "random", "stream", "weighted"
+test_modes: "all"

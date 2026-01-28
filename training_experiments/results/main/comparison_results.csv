@@ -7,14 +7,14 @@ Cell line,Streaming (buffer),0.9168992344098278,0.0
 Drug,Streaming (buffer),2.7940944604706337e-05,0.0
 MOA (broad),Streaming (buffer),0.19940309598971834,0.0
 MOA (fine),Streaming (buffer),0.03895052491861534,0.0
-Cell line,"Block size = 4
-Fetch factor = 16",0.920726062127489,0.0
-Drug,"Block size = 4
-Fetch factor = 16",0.02750165408279723,0.0
-MOA (broad),"Block size = 4
-Fetch factor = 16",0.2927716923682644,0.0
-MOA (fine),"Block size = 4
-Fetch factor = 16",0.08632672213341185,0.0
+Cell line,"Block size = 16
+Fetch factor = 256",0.920726062127489,0.0
+Drug,"Block size = 16
+Fetch factor = 256",0.02750165408279723,0.0
+MOA (broad),"Block size = 16
+Fetch factor = 256",0.2927716923682644,0.0
+MOA (fine),"Block size = 16
+Fetch factor = 256",0.08632672213341185,0.0
 Cell line,Random Sampling,0.919829108944947,0.0
 Drug,Random Sampling,0.0310840148811838,0.0
 MOA (broad),Random Sampling,0.2727839908920605,0.0

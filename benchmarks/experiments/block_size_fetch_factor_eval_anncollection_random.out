@@ -1,8 +1,11 @@
 Starting data loader performance evaluation using config: experiments/block_size_fetch_factor_eval_anncollection_random.yaml
 Using collection type: anncollection
-Testing modes: random
+Testing modes: all
 Loading AnnData files...
 Created AnnCollection with 100648790 observations and 62710 variables.
+
+Testing AnnLoader in stream mode (shuffle=False, drop_last=False)...
+Updated results saved to ./experiments/block_size_fetch_factor_eval_anncollection_random.csv
 
 Testing AnnLoader in random sampling mode (shuffle=True, drop_last=True)...
 Updated results saved to ./experiments/block_size_fetch_factor_eval_anncollection_random.csv
@@ -45,42 +48,131 @@ Updated results saved to ./experiments/block_size_fetch_factor_eval_anncollectio
 Updated results saved to ./experiments/block_size_fetch_factor_eval_anncollection_random.csv
 Updated results saved to ./experiments/block_size_fetch_factor_eval_anncollection_random.csv
 
+Testing scDataset with BlockWeightedSampling strategy...
+Updated results saved to ./experiments/block_size_fetch_factor_eval_anncollection_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_anncollection_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_anncollection_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_anncollection_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_anncollection_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_anncollection_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_anncollection_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_anncollection_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_anncollection_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_anncollection_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_anncollection_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_anncollection_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_anncollection_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_anncollection_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_anncollection_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_anncollection_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_anncollection_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_anncollection_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_anncollection_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_anncollection_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_anncollection_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_anncollection_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_anncollection_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_anncollection_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_anncollection_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_anncollection_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_anncollection_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_anncollection_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_anncollection_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_anncollection_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_anncollection_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_anncollection_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_anncollection_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_anncollection_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_anncollection_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_anncollection_random.csv
+
+Testing scDataset with Streaming strategy (stream mode)...
+Updated results saved to ./experiments/block_size_fetch_factor_eval_anncollection_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_anncollection_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_anncollection_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_anncollection_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_anncollection_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_anncollection_random.csv
+
 ===== PERFORMANCE RESULTS =====
-      mode     loader collection_type  batch_size  block_size  fetch_factor  num_workers  samples_per_second     elapsed
-0   random  AnnLoader   anncollection          64         NaN           NaN          NaN           19.730399  123.261575
-1   random  scDataset   anncollection          64         1.0           1.0          1.0           19.229963  126.469302
-2   random  scDataset   anncollection          64         1.0           4.0          1.0           61.795280  125.317014
-3   random  scDataset   anncollection          64         1.0          16.0          1.0          151.051414  122.448374
-4   random  scDataset   anncollection          64         1.0          64.0          1.0          230.913193  124.445033
-5   random  scDataset   anncollection          64         1.0         256.0          1.0          266.260812  123.307669
-6   random  scDataset   anncollection          64         1.0        1024.0          1.0          284.381993  230.675646
-7   random  scDataset   anncollection          64         4.0           1.0          1.0           28.121506  122.895269
-8   random  scDataset   anncollection          64         4.0           4.0          1.0           74.058023  125.307154
-9   random  scDataset   anncollection          64         4.0          16.0          1.0          243.920697  122.006867
-10  random  scDataset   anncollection          64         4.0          64.0          1.0          555.696028  125.421087
-11  random  scDataset   anncollection          64         4.0         256.0          1.0          798.885214  123.131582
-12  random  scDataset   anncollection          64         4.0        1024.0          1.0          842.015481  155.740604
-13  random  scDataset   anncollection          64        16.0           1.0          1.0           73.519394  121.872604
-14  random  scDataset   anncollection          64        16.0           4.0          1.0          107.671378  124.229859
-15  random  scDataset   anncollection          64        16.0          16.0          1.0          291.381386  123.219951
-16  random  scDataset   anncollection          64        16.0          64.0          1.0          839.569186  122.043545
-17  random  scDataset   anncollection          64        16.0         256.0          1.0         1579.756982  124.495098
-18  random  scDataset   anncollection          64        16.0        1024.0          1.0         1846.292096  139.106916
-19  random  scDataset   anncollection          64        64.0           1.0          1.0          221.081955  120.715415
-20  random  scDataset   anncollection          64        64.0           4.0          1.0          274.349500  121.538403
-21  random  scDataset   anncollection          64        64.0          16.0          1.0          413.678315  121.447024
-22  random  scDataset   anncollection          64        64.0          64.0          1.0          989.370513  120.318929
-23  random  scDataset   anncollection          64        64.0         256.0          1.0         2127.399629  123.252818
-24  random  scDataset   anncollection          64        64.0        1024.0          1.0         2664.051790  125.018591
-25  random  scDataset   anncollection          64       256.0           1.0          1.0          220.995383  120.762704
-26  random  scDataset   anncollection          64       256.0           4.0          1.0          784.704799  120.789372
-27  random  scDataset   anncollection          64       256.0          16.0          1.0          948.839598  120.939303
-28  random  scDataset   anncollection          64       256.0          64.0          1.0         1311.011087  121.896757
-29  random  scDataset   anncollection          64       256.0         256.0          1.0         2286.799757  124.484883
-30  random  scDataset   anncollection          64       256.0        1024.0          1.0         3197.952484  122.978688
-31  random  scDataset   anncollection          64      1024.0           1.0          1.0          214.132131  120.747876
-32  random  scDataset   anncollection          64      1024.0           4.0          1.0          803.898952  120.771398
-33  random  scDataset   anncollection          64      1024.0          16.0          1.0         2175.439271  120.383963
-34  random  scDataset   anncollection          64      1024.0          64.0          1.0         2358.153389  121.315264
-35  random  scDataset   anncollection          64      1024.0         256.0          1.0         2725.940492  120.325444
-36  random  scDataset   anncollection          64      1024.0        1024.0          1.0         3343.897572  120.424741
+        mode     loader collection_type  batch_size  block_size  fetch_factor  num_workers  samples_per_second     elapsed
+0     stream  AnnLoader   anncollection          64         NaN           NaN          NaN          344.753772  121.037109
+1     random  AnnLoader   anncollection          64         NaN           NaN          NaN           19.760661  123.072807
+2     random  scDataset   anncollection          64         1.0           1.0          0.0           19.698217  120.213926
+3     random  scDataset   anncollection          64         1.0           4.0          0.0           63.525225  121.904330
+4     random  scDataset   anncollection          64         1.0          16.0          0.0          149.749765  123.512715
+5     random  scDataset   anncollection          64         1.0          64.0          0.0          229.767216  125.065710
+6     random  scDataset   anncollection          64         1.0         256.0          0.0          267.691455  122.648666
+7     random  scDataset   anncollection          64         1.0        1024.0          0.0          287.209959  228.404336
+8     random  scDataset   anncollection          64         4.0           1.0          0.0           27.529881  120.886827
+9     random  scDataset   anncollection          64         4.0           4.0          0.0           75.891014  122.280617
+10    random  scDataset   anncollection          64         4.0          16.0          0.0          244.026253  121.954092
+11    random  scDataset   anncollection          64         4.0          64.0          0.0          560.704179  124.300839
+12    random  scDataset   anncollection          64         4.0         256.0          0.0          839.324794  136.719421
+13    random  scDataset   anncollection          64         4.0        1024.0          0.0          958.479256  136.816733
+14    random  scDataset   anncollection          64        16.0           1.0          0.0           71.945122  120.981100
+15    random  scDataset   anncollection          64        16.0           4.0          0.0          106.828339  120.417486
+16    random  scDataset   anncollection          64        16.0          16.0          0.0          273.951353  123.583985
+17    random  scDataset   anncollection          64        16.0          64.0          0.0          816.324026  120.501170
+18    random  scDataset   anncollection          64        16.0         256.0          0.0         1663.805137  127.014874
+19    random  scDataset   anncollection          64        16.0        1024.0          0.0         1854.493367  143.116176
+20    random  scDataset   anncollection          64        64.0           1.0          0.0          211.992652  120.155108
+21    random  scDataset   anncollection          64        64.0           4.0          0.0          256.878096  120.835527
+22    random  scDataset   anncollection          64        64.0          16.0          0.0          369.451205  122.127088
+23    random  scDataset   anncollection          64        64.0          64.0          0.0          895.410422  120.007538
+24    random  scDataset   anncollection          64        64.0         256.0          0.0         2256.828536  120.012662
+25    random  scDataset   anncollection          64        64.0        1024.0          0.0         3401.540302  134.884776
+26    random  scDataset   anncollection          64       256.0           1.0          0.0          198.248420  120.091751
+27    random  scDataset   anncollection          64       256.0           4.0          0.0          705.706504  120.163268
+28    random  scDataset   anncollection          64       256.0          16.0          0.0          819.652372  121.261163
+29    random  scDataset   anncollection          64       256.0          64.0          0.0         1161.827817  123.446864
+30    random  scDataset   anncollection          64       256.0         256.0          0.0         2311.638819  120.517097
+31    random  scDataset   anncollection          64       256.0        1024.0          0.0         3776.017768  121.507903
+32    random  scDataset   anncollection          64      1024.0           1.0          0.0          187.935609  120.211386
+33    random  scDataset   anncollection          64      1024.0           4.0          0.0          677.905246  120.181988
+34    random  scDataset   anncollection          64      1024.0          16.0          0.0         1971.058231  120.041101
+35    random  scDataset   anncollection          64      1024.0          64.0          0.0         2195.379377  121.302041
+36    random  scDataset   anncollection          64      1024.0         256.0          0.0         2676.628646  123.498641
+37    random  scDataset   anncollection          64      1024.0        1024.0          0.0         4032.926037  130.017758
+38  weighted  scDataset   anncollection          64         1.0           1.0          0.0           15.521963  123.695691
+39  weighted  scDataset   anncollection          64         1.0           4.0          0.0           52.504328  123.113660
+40  weighted  scDataset   anncollection          64         1.0          16.0          0.0          133.755613  122.970541
+41  weighted  scDataset   anncollection          64         1.0          64.0          0.0          216.887167  132.492855
+42  weighted  scDataset   anncollection          64         1.0         256.0          0.0          259.209777  126.661889
+43  weighted  scDataset   anncollection          64         1.0        1024.0          0.0          272.705526  240.552515
+44  weighted  scDataset   anncollection          64         4.0           1.0          0.0           28.103572  120.696403
+45  weighted  scDataset   anncollection          64         4.0           4.0          0.0           73.806396  122.265826
+46  weighted  scDataset   anncollection          64         4.0          16.0          0.0          238.539481  120.466431
+47  weighted  scDataset   anncollection          64         4.0          64.0          0.0          549.122575  126.922482
+48  weighted  scDataset   anncollection          64         4.0         256.0          0.0          816.712072  120.443916
+49  weighted  scDataset   anncollection          64         4.0        1024.0          0.0          891.309449  147.127353
+50  weighted  scDataset   anncollection          64        16.0           1.0          0.0           71.824438  120.293319
+51  weighted  scDataset   anncollection          64        16.0           4.0          0.0          111.494086  122.266574
+52  weighted  scDataset   anncollection          64        16.0          16.0          0.0          274.993849  123.115481
+53  weighted  scDataset   anncollection          64        16.0          64.0          0.0          814.161258  120.821273
+54  weighted  scDataset   anncollection          64        16.0         256.0          0.0         1629.411950  120.701214
+55  weighted  scDataset   anncollection          64        16.0        1024.0          0.0         2092.936828  125.282329
+56  weighted  scDataset   anncollection          64        64.0           1.0          0.0          211.440913  120.165958
+57  weighted  scDataset   anncollection          64        64.0           4.0          0.0          259.787712  120.467592
+58  weighted  scDataset   anncollection          64        64.0          16.0          0.0          366.918938  120.179134
+59  weighted  scDataset   anncollection          64        64.0          64.0          0.0          905.996034  122.137400
+60  weighted  scDataset   anncollection          64        64.0         256.0          0.0         2129.451073  123.134081
+61  weighted  scDataset   anncollection          64        64.0        1024.0          0.0         3163.046405  124.335830
+62  weighted  scDataset   anncollection          64       256.0           1.0          0.0          200.691003  120.224622
+63  weighted  scDataset   anncollection          64       256.0           4.0          0.0          706.066443  120.102011
+64  weighted  scDataset   anncollection          64       256.0          16.0          0.0          820.264443  121.170680
+65  weighted  scDataset   anncollection          64       256.0          64.0          0.0         1137.000207  120.007014
+66  weighted  scDataset   anncollection          64       256.0         256.0          0.0         2313.342642  120.013350
+67  weighted  scDataset   anncollection          64       256.0        1024.0          0.0         3527.520018  130.067582
+68  weighted  scDataset   anncollection          64      1024.0           1.0          0.0          184.179399  120.230602
+69  weighted  scDataset   anncollection          64      1024.0           4.0          0.0          670.131141  120.048144
+70  weighted  scDataset   anncollection          64      1024.0          16.0          0.0         1890.287160  120.294950
+71  weighted  scDataset   anncollection          64      1024.0          64.0          0.0         2120.103384  121.745006
+72  weighted  scDataset   anncollection          64      1024.0         256.0          0.0         2642.149010  124.044480
+73  weighted  scDataset   anncollection          64      1024.0        1024.0          0.0         3710.037666  123.668825
+74    stream  scDataset   anncollection          64         NaN           1.0          0.0          236.442888  120.181242
+75    stream  scDataset   anncollection          64         NaN           4.0          0.0          843.919000  120.201109
+76    stream  scDataset   anncollection          64         NaN          16.0          0.0         2294.706221  120.067657
+77    stream  scDataset   anncollection          64         NaN          64.0          0.0         4037.731380  120.733143
+78    stream  scDataset   anncollection          64         NaN         256.0          0.0         4974.571484  121.874216
+79    stream  scDataset   anncollection          64         NaN        1024.0          0.0         5262.687717  124.541686

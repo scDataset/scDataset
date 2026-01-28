@@ -1,8 +1,11 @@
 Starting data loader performance evaluation using config: experiments/block_size_fetch_factor_eval_huggingface_random.yaml
 Using collection type: huggingface
-Testing modes: random
+Testing modes: all
 Loading Hugging Face dataset...
 Loaded Hugging Face dataset with 95624334 samples.
+
+Testing PyTorch DataLoader in stream mode (shuffle=False)...
+Updated results saved to ./experiments/block_size_fetch_factor_eval_huggingface_random.csv
 
 Testing PyTorch DataLoader in random sampling mode (shuffle=True)...
 Updated results saved to ./experiments/block_size_fetch_factor_eval_huggingface_random.csv
@@ -45,42 +48,131 @@ Updated results saved to ./experiments/block_size_fetch_factor_eval_huggingface_
 Updated results saved to ./experiments/block_size_fetch_factor_eval_huggingface_random.csv
 Updated results saved to ./experiments/block_size_fetch_factor_eval_huggingface_random.csv
 
+Testing scDataset with BlockWeightedSampling strategy...
+Updated results saved to ./experiments/block_size_fetch_factor_eval_huggingface_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_huggingface_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_huggingface_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_huggingface_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_huggingface_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_huggingface_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_huggingface_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_huggingface_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_huggingface_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_huggingface_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_huggingface_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_huggingface_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_huggingface_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_huggingface_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_huggingface_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_huggingface_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_huggingface_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_huggingface_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_huggingface_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_huggingface_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_huggingface_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_huggingface_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_huggingface_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_huggingface_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_huggingface_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_huggingface_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_huggingface_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_huggingface_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_huggingface_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_huggingface_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_huggingface_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_huggingface_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_huggingface_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_huggingface_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_huggingface_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_huggingface_random.csv
+
+Testing scDataset with Streaming strategy (stream mode)...
+Updated results saved to ./experiments/block_size_fetch_factor_eval_huggingface_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_huggingface_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_huggingface_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_huggingface_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_huggingface_random.csv
+Updated results saved to ./experiments/block_size_fetch_factor_eval_huggingface_random.csv
+
 ===== PERFORMANCE RESULTS =====
-      mode       loader collection_type  batch_size  block_size  fetch_factor  num_workers  samples_per_second     elapsed
-0   random  HuggingFace     huggingface          64         NaN           NaN            1          150.492721  122.052414
-1   random    scDataset     huggingface          64         1.0           1.0            1          158.466953  121.160909
-2   random    scDataset     huggingface          64         1.0           4.0            1          154.224397  121.589064
-3   random    scDataset     huggingface          64         1.0          16.0            1          147.778921  125.159934
-4   random    scDataset     huggingface          64         1.0          64.0            1          151.785322  135.349056
-5   random    scDataset     huggingface          64         1.0         256.0            1          149.936304  218.972985
-6   random    scDataset     huggingface          64         1.0        1024.0            1          136.690552  479.916126
-7   random    scDataset     huggingface          64         4.0           1.0            1          538.910664  120.539459
-8   random    scDataset     huggingface          64         4.0           4.0            1          512.115531  120.597788
-9   random    scDataset     huggingface          64         4.0          16.0            1          484.169420  122.271250
-10  random    scDataset     huggingface          64         4.0          64.0            1          493.170165  124.711518
-11  random    scDataset     huggingface          64         4.0         256.0            1          501.863352  130.712872
-12  random    scDataset     huggingface          64         4.0        1024.0            1          495.693038  132.339966
-13  random    scDataset     huggingface          64        16.0           1.0            1         1651.806027  120.498410
-14  random    scDataset     huggingface          64        16.0           4.0            1         1382.612852  120.398129
-15  random    scDataset     huggingface          64        16.0          16.0            1         1337.620243  120.955107
-16  random    scDataset     huggingface          64        16.0          64.0            1         1323.506789  120.745886
-17  random    scDataset     huggingface          64        16.0         256.0            1         1341.516478  122.178149
-18  random    scDataset     huggingface          64        16.0        1024.0            1         1305.021312  150.704052
-19  random    scDataset     huggingface          64        64.0           1.0            1         3136.339240  120.537981
-20  random    scDataset     huggingface          64        64.0           4.0            1         2372.560578  120.443711
-21  random    scDataset     huggingface          64        64.0          16.0            1         2250.128316  120.370024
-22  random    scDataset     huggingface          64        64.0          64.0            1         2232.557191  121.317385
-23  random    scDataset     huggingface          64        64.0         256.0            1         2249.771794  123.831226
-24  random    scDataset     huggingface          64        64.0        1024.0            1         2229.675723  125.492688
-25  random    scDataset     huggingface          64       256.0           1.0            1         3686.354155  120.504971
-26  random    scDataset     huggingface          64       256.0           4.0            1         2881.880105  120.454699
-27  random    scDataset     huggingface          64       256.0          16.0            1         2762.818146  120.595704
-28  random    scDataset     huggingface          64       256.0          64.0            1         2693.869530  121.259028
-29  random    scDataset     huggingface          64       256.0         256.0            1         2734.572460  120.577533
-30  random    scDataset     huggingface          64       256.0        1024.0            1         2512.418405  125.023762
-31  random    scDataset     huggingface          64      1024.0           1.0            1         3907.431029  120.533414
-32  random    scDataset     huggingface          64      1024.0           4.0            1         3243.964585  120.366296
-33  random    scDataset     huggingface          64      1024.0          16.0            1         3045.171635  120.405693
-34  random    scDataset     huggingface          64      1024.0          64.0            1         2937.468064  120.898676
-35  random    scDataset     huggingface          64      1024.0         256.0            1         2829.668133  123.265338
-36  random    scDataset     huggingface          64      1024.0        1024.0            1         2879.571265  121.840360
+        mode       loader collection_type  batch_size  block_size  fetch_factor  num_workers  samples_per_second     elapsed
+0     stream  HuggingFace     huggingface          64         NaN           NaN            0        12974.747349  120.001720
+1     random  HuggingFace     huggingface          64         NaN           NaN            0          157.881208  121.205052
+2     random    scDataset     huggingface          64         1.0           1.0            0          159.058846  120.307676
+3     random    scDataset     huggingface          64         1.0           4.0            0          157.337658  120.810239
+4     random    scDataset     huggingface          64         1.0          16.0            0          161.616920  120.779433
+5     random    scDataset     huggingface          64         1.0          64.0            0          165.840020  123.878422
+6     random    scDataset     huggingface          64         1.0         256.0            0          166.278039  197.452413
+7     random    scDataset     huggingface          64         1.0        1024.0            0          168.141587  390.147383
+8     random    scDataset     huggingface          64         4.0           1.0            0          651.763042  120.092725
+9     random    scDataset     huggingface          64         4.0           4.0            0          634.755806  120.285627
+10    random    scDataset     huggingface          64         4.0          16.0            0          649.952722  121.411908
+11    random    scDataset     huggingface          64         4.0          64.0            0          638.201104  122.043036
+12    random    scDataset     huggingface          64         4.0         256.0            0          618.099986  132.638735
+13    random    scDataset     huggingface          64         4.0        1024.0            0          598.718256  219.027896
+14    random    scDataset     huggingface          64        16.0           1.0            0         2119.374198  120.095828
+15    random    scDataset     huggingface          64        16.0           4.0            0         2064.371274  120.071425
+16    random    scDataset     huggingface          64        16.0          16.0            0         2083.044125  120.469844
+17    random    scDataset     huggingface          64        16.0          64.0            0         2012.719308  120.100204
+18    random    scDataset     huggingface          64        16.0         256.0            0         1966.486795  125.006687
+19    random    scDataset     huggingface          64        16.0        1024.0            0         1875.679219  139.793626
+20    random    scDataset     huggingface          64        64.0           1.0            0         5189.277785  120.087616
+21    random    scDataset     huggingface          64        64.0           4.0            0         4604.093677  120.060111
+22    random    scDataset     huggingface          64        64.0          16.0            0         4671.124436  120.145804
+23    random    scDataset     huggingface          64        64.0          64.0            0         4685.347349  120.655302
+24    random    scDataset     huggingface          64        64.0         256.0            0         4460.635862  121.223973
+25    random    scDataset     huggingface          64        64.0        1024.0            0         4040.589136  129.771175
+26    random    scDataset     huggingface          64       256.0           1.0            0         8225.545249  120.086386
+27    random    scDataset     huggingface          64       256.0           4.0            0         6849.790478  120.052723
+28    random    scDataset     huggingface          64       256.0          16.0            0         6905.359722  120.124662
+29    random    scDataset     huggingface          64       256.0          64.0            0         7015.876066  120.275785
+30    random    scDataset     huggingface          64       256.0         256.0            0         6582.934241  121.963849
+31    random    scDataset     huggingface          64       256.0        1024.0            0         6118.255454  128.549062
+32    random    scDataset     huggingface          64      1024.0           1.0            0        10335.691926  120.084075
+33    random    scDataset     huggingface          64      1024.0           4.0            0         8292.536484  120.065556
+34    random    scDataset     huggingface          64      1024.0          16.0            0         8277.677405  120.126450
+35    random    scDataset     huggingface          64      1024.0          64.0            0         8586.118711  120.223821
+36    random    scDataset     huggingface          64      1024.0         256.0            0         8258.755256  121.021627
+37    random    scDataset     huggingface          64      1024.0        1024.0            0         7557.154282  121.417132
+38  weighted    scDataset     huggingface          64         1.0           1.0            0          141.104561  120.194555
+39  weighted    scDataset     huggingface          64         1.0           4.0            0          147.718929  121.744722
+40  weighted    scDataset     huggingface          64         1.0          16.0            0          151.586544  122.016107
+41  weighted    scDataset     huggingface          64         1.0          64.0            0          158.095696  129.946612
+42  weighted    scDataset     huggingface          64         1.0         256.0            0          159.932111  205.287104
+43  weighted    scDataset     huggingface          64         1.0        1024.0            0          141.330371  464.160672
+44  weighted    scDataset     huggingface          64         4.0           1.0            0          605.007191  120.170472
+45  weighted    scDataset     huggingface          64         4.0           4.0            0          593.186531  120.083644
+46  weighted    scDataset     huggingface          64         4.0          16.0            0          596.057880  120.364150
+47  weighted    scDataset     huggingface          64         4.0          64.0            0          598.009889  123.395953
+48  weighted    scDataset     huggingface          64         4.0         256.0            0          594.289418  137.952986
+49  weighted    scDataset     huggingface          64         4.0        1024.0            0          595.536622  220.198045
+50  weighted    scDataset     huggingface          64        16.0           1.0            0         2093.842104  120.093105
+51  weighted    scDataset     huggingface          64        16.0           4.0            0         2045.629591  120.045193
+52  weighted    scDataset     huggingface          64        16.0          16.0            0         2053.676734  120.198080
+53  weighted    scDataset     huggingface          64        16.0          64.0            0         1997.941400  120.988533
+54  weighted    scDataset     huggingface          64        16.0         256.0            0         1960.786267  125.370115
+55  weighted    scDataset     huggingface          64        16.0        1024.0            0         1830.994044  143.205272
+56  weighted    scDataset     huggingface          64        64.0           1.0            0         5191.804865  120.090800
+57  weighted    scDataset     huggingface          64        64.0           4.0            0         4651.873371  120.037661
+58  weighted    scDataset     huggingface          64        64.0          16.0            0         4718.841915  120.029450
+59  weighted    scDataset     huggingface          64        64.0          64.0            0         4627.836991  120.384534
+60  weighted    scDataset     huggingface          64        64.0         256.0            0         4447.328401  122.378190
+61  weighted    scDataset     huggingface          64        64.0        1024.0            0         4100.009968  127.890421
+62  weighted    scDataset     huggingface          64       256.0           1.0            0         8292.847663  120.091920
+63  weighted    scDataset     huggingface          64       256.0           4.0            0         6861.179745  120.039998
+64  weighted    scDataset     huggingface          64       256.0          16.0            0         7028.320344  120.062826
+65  weighted    scDataset     huggingface          64       256.0          64.0            0         7116.010680  120.310106
+66  weighted    scDataset     huggingface          64       256.0         256.0            0         6677.379823  121.369762
+67  weighted    scDataset     huggingface          64       256.0        1024.0            0         6292.674847  124.985959
+68  weighted    scDataset     huggingface          64      1024.0           1.0            0        10242.251826  120.086092
+69  weighted    scDataset     huggingface          64      1024.0           4.0            0         8177.015915  120.063359
+70  weighted    scDataset     huggingface          64      1024.0          16.0            0         8447.177153  120.140490
+71  weighted    scDataset     huggingface          64      1024.0          64.0            0         8493.808170  120.083710
+72  weighted    scDataset     huggingface          64      1024.0         256.0            0         8236.841684  121.343597
+73  weighted    scDataset     huggingface          64      1024.0        1024.0            0         7454.450901  123.089952
+74    stream    scDataset     huggingface          64         NaN           1.0            0        11767.618764  120.085467
+75    stream    scDataset     huggingface          64         NaN           4.0            0         9341.111905  120.043953
+76    stream    scDataset     huggingface          64         NaN          16.0            0        10082.280093  120.055383
+77    stream    scDataset     huggingface          64         NaN          64.0            0        10282.163421  120.310867
+78    stream    scDataset     huggingface          64         NaN         256.0            0         9858.466639  121.326779
+79    stream    scDataset     huggingface          64         NaN        1024.0            0         8839.768085  122.797792
