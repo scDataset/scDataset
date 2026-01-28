@@ -233,7 +233,7 @@ class MultiTaskTrainer:
         train_loader: DataLoader,
         val_loader: DataLoader,
         num_epochs: int = 1,
-        learning_rate: float = 1e-3,
+        learning_rate: float = 1e-5,
         log_interval: int = 1000,
         save_dir: Optional[str] = None,
     ) -> Dict[str, Any]:

@@ -1,21 +1,21 @@
-Task,Method,Macro F1-score,Error
-Cell line,Streaming,0.916096418376828,0.0
-Drug,Streaming,0.001306551063368088,0.0
-MOA (broad),Streaming,0.18537126230751289,0.0
-MOA (fine),Streaming,0.0417306259239548,0.0
-Cell line,Streaming (buffer),0.9168992344098278,0.0
-Drug,Streaming (buffer),2.7940944604706337e-05,0.0
-MOA (broad),Streaming (buffer),0.19940309598971834,0.0
-MOA (fine),Streaming (buffer),0.03895052491861534,0.0
+Task,Method,Macro F1-score,Error,N_runs
+Cell line,Streaming,0.9349835,4.949747468291157e-06,2
+Drug,Streaming,0.0023235,3.0405591591021594e-05,2
+MOA (broad),Streaming,0.203708,2.121320343557839e-05,2
+MOA (fine),Streaming,0.054844500000000004,9.263098833543714e-05,2
+Cell line,Streaming (buffer),0.9349885,3.181980515344609e-05,2
+Drug,Streaming (buffer),0.002065,1.4142135623732828e-06,2
+MOA (broad),Streaming (buffer),0.1942175,5.444722215137936e-05,2
+MOA (fine),Streaming (buffer),0.054211999999999996,3.535533905932839e-05,2
 Cell line,"Block size = 16
-Fetch factor = 256",0.920726062127489,0.0
+Fetch factor = 256",0.937303,9.899494936582313e-06,2
 Drug,"Block size = 16
-Fetch factor = 256",0.02750165408279723,0.0
+Fetch factor = 256",0.030375,0.0006420529573173845,2
 MOA (broad),"Block size = 16
-Fetch factor = 256",0.2927716923682644,0.0
+Fetch factor = 256",0.269811,0.00034082546853194274,2
 MOA (fine),"Block size = 16
-Fetch factor = 256",0.08632672213341185,0.0
-Cell line,Random Sampling,0.919829108944947,0.0
-Drug,Random Sampling,0.0310840148811838,0.0
-MOA (broad),Random Sampling,0.2727839908920605,0.0
-MOA (fine),Random Sampling,0.08872956881957873,0.0
+Fetch factor = 256",0.102874,0.00017960512242137626,2
+Cell line,Random Sampling,0.9374709999999999,8.768124086706257e-05,2
+Drug,Random Sampling,0.029913,0.00020081832585697916,2
+MOA (broad),Random Sampling,0.2679895,3.0405591591032327e-05,2
+MOA (fine),Random Sampling,0.1029675,0.0015549278118292226,2

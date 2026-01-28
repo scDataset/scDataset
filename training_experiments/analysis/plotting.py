@@ -247,11 +247,11 @@ def plot_comparison(
             ax.annotate(
                 f"{val:.3f}",
                 xy=(bar.get_x() + bar.get_width() / 2, height),
-                xytext=(0, 3),
+                xytext=(0, 9),
                 textcoords="offset points",
                 ha="center",
                 va="bottom",
-                fontsize=fontsize_ticks - 1,
+                fontsize=fontsize_ticks,
             )
 
         # Add subtle grid

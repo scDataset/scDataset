@@ -76,7 +76,7 @@ def run_experiment(
     strategy_name: str,
     num_epochs: int = 1,
     batch_size: int = 64,
-    learning_rate: float = 1e-3,
+    learning_rate: float = 1e-5,
     fetch_factor: int = 256,
     num_workers: int = 8,
     min_count_baseline: int = 1000,
@@ -288,7 +288,7 @@ def run_experiment(
 def run_all_experiments(
     num_epochs: int = 1,
     batch_size: int = 64,
-    learning_rate: float = 1e-3,
+    learning_rate: float = 1e-5,
     fetch_factor: int = 256,
     num_workers: int = 8,
     min_count_baseline: int = 1000,
