@@ -4,7 +4,7 @@
 
 # Dataset paths
 data:
-  h5ad_dir: "/home/kidara/raid/volume/vevo-data/2025-02-25/original_h5ad"
+  h5ad_dir: "/path/to/tahoe-100m/h5ad"
   # Pilot mode: use only subset of plates and limit cells
   train_plates: [1]  # Only plate 1 for training
   test_plates: [14]  # Only plate 14 for testing

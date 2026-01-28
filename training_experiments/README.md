@@ -74,7 +74,7 @@ pip install -r requirements.txt
 ## Dataset
 
 This module expects the Tahoe-100M dataset in h5ad format at:
-`/home/kidara/raid/volume/vevo-data/2025-02-25/original_h5ad/`
+`/path/to/tahoe-100m/h5ad/`
 
 Training uses plates 1-13, testing uses plate 14.
 

@@ -71,7 +71,7 @@ class TahoeDataLoader:
 
     def __init__(
         self,
-        data_dir: str = "/home/kidara/raid/volume/vevo-data/2025-02-25/original_h5ad",
+        data_dir: str = "/path/to/tahoe-100m/h5ad",
         label_dir: str = None,
         train_plates: list = None,
         test_plates: list = None,
@@ -484,7 +484,7 @@ def create_dataloaders(
     batch_size: int = 64,
     fetch_factor: int = 16,
     num_workers: int = 8,
-    data_dir: str = "/home/kidara/raid/volume/vevo-data/2025-02-25/original_h5ad",
+    data_dir: str = "/path/to/tahoe-100m/h5ad",
     label_dir: str = None,
     min_count_baseline: int = 1000,
     block_size: int | None = None,

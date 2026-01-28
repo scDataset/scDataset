@@ -1,16 +1,16 @@
 # Define dataset paths
 # HUGGINGFACE_DATASET_PATH = "tahoebio/Tahoe-100m"
-# H5AD_FILES_PATH = "/path-to-data/2025-02-25/original_h5ad"
-# BIONEMO_DATA_PATH = "/path-to-data/2025-02-25/scdl_out"
+# H5AD_FILES_PATH = "/path/to/tahoe-100m/h5ad"
+# BIONEMO_DATA_PATH = "/path/to/tahoe-100m/scdl_out"
 # import os
 
-# os.environ["HF_HOME"] = "/path-to-data/.cache/huggingface"
+# os.environ["HF_HOME"] = "/path/to/huggingface/cache"
 HUGGINGFACE_DATASET_PATH = "tahoebio/Tahoe-100m"
-H5AD_FILES_PATH = "/home/kidara/raid/volume/vevo-data/2025-02-25/original_h5ad"
-BIONEMO_DATA_PATH = "/home/kidara/raid/volume/vevo-data/2025-02-25/scdl_out"
+H5AD_FILES_PATH = "/path/to/tahoe-100m/h5ad"
+BIONEMO_DATA_PATH = "/path/to/tahoe-100m/scdl_out"
 import os
 
-os.environ["HF_HOME"] = "/home/kidara/raid/volume/.cache/huggingface"
+os.environ["HF_HOME"] = "/path/to/huggingface/cache"
 
 
 import argparse
