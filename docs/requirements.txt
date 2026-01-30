@@ -1,5 +1,13 @@
+# Core Sphinx
 sphinx>=8.0
+
+# Theme
 sphinx-book-theme
+
+# Extensions
 sphinx-autodoc-typehints
 sphinx-sitemap
 nbsphinx
+
+# Required for nbsphinx Pygments lexer
+ipython
