@@ -1,0 +1,5 @@
+sphinx>=8.0
+sphinx-book-theme
+sphinx-autodoc-typehints
+sphinx-sitemap
+nbsphinx
