@@ -27,7 +27,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        pip install sphinx sphinx-book-theme sphinx-autodoc-typehints sphinx-sitemap
+        pip install -r docs/requirements.txt
         pip install -e .
 
     - name: Build docs
