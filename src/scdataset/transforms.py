@@ -137,7 +137,7 @@ def adata_to_mindex(batch, columns: Optional[List[str]] = None):
 
 def hf_tahoe_to_tensor(batch, num_genes: int = 62713):
     """
-    Transform HuggingFace Tahoe sparse gene expression data to dense tensors.
+    Transform HuggingFace Tahoe-100M sparse gene expression data to dense tensors.
 
     This transform converts sparse gene expression data stored in HuggingFace
     format (with separate 'genes' and 'expressions' arrays) into dense PyTorch

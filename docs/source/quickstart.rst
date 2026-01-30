@@ -8,7 +8,7 @@ Basic Concepts
 
 ``scDataset`` is built around two main concepts:
 
-1. **Data Collections**: Any object that supports indexing (``__getitem__``) and length (``__len__``)
+1. **Data Collections**: Any object that supports default indexing (``__getitem__``) or custom indexing that can be implemented with ``fetch_callback``
 2. **Sampling Strategies**: Define how data is sampled and batched
 
 Minimal Example
@@ -26,10 +26,10 @@ The simplest way to use ``scDataset`` is as a drop-in replacement for your exist
    data = np.random.randn(1000, 100)  # 1000 samples, 100 features
    
    # Create scDataset with streaming strategy
-   dataset = scDataset(data, Streaming(), batch_size=64)
+   dataset = scDataset(data, Streaming(), batch_size=64, fetch_factor=16)
    
    # Use with DataLoader (note: batch_size=None)
-   loader = DataLoader(dataset, batch_size=None, num_workers=4)
+   loader = DataLoader(dataset, batch_size=None, num_workers=4, prefetch_factor=17)
    
    for batch in loader:
        print(f"Batch shape: {batch.shape}")  # (64, 100)
@@ -38,7 +38,7 @@ The simplest way to use ``scDataset`` is as a drop-in replacement for your exist
 
 .. note::
    Always set ``batch_size=None`` in the DataLoader when using ``scDataset``, 
-   as batching is handled internally by the dataset.
+   as batching is handled internally by ``scDataset``.
 
 Sampling Strategies
 -------------------
@@ -56,7 +56,7 @@ Streaming (Sequential)
    strategy = Streaming()
    dataset = scDataset(data, strategy, batch_size=64)
    
-   # Sequential access with buffer-level shuffling (similar to Ray Dataset/WebDataset)
+   # Sequential access with buffer-level shuffling (similar to Ray Data/WebDataset)
    strategy = Streaming(shuffle=True)
    dataset = scDataset(data, strategy, batch_size=64)
    # This shuffles batches within each fetch buffer while maintaining
@@ -70,7 +70,7 @@ Block Shuffling
    from scdataset import BlockShuffling
    
    # Shuffle in blocks for better I/O while maintaining some randomness
-   strategy = BlockShuffling(block_size=8)
+   strategy = BlockShuffling(block_size=16)
    dataset = scDataset(data, strategy, batch_size=64)
 
 Weighted Sampling
@@ -85,7 +85,7 @@ Weighted Sampling
    strategy = BlockWeightedSampling(
        weights=weights, 
        total_size=10000,  # Generate 10000 samples per epoch
-       block_size=8
+       block_size=16
    )
    dataset = scDataset(data, strategy, batch_size=64)
 
@@ -134,6 +134,39 @@ AnnData Objects
    
    dataset = scDataset(adata, Streaming(), batch_size=64, fetch_callback=fetch_adata)
 
+AnnCollection (Multiple Files)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+For large datasets spanning multiple files, use ``AnnCollection`` with backed mode:
+
+.. code-block:: python
+
+   import anndata as ad
+   from anndata.experimental import AnnCollection
+   from scdataset import scDataset, BlockShuffling
+   from scdataset.transforms import adata_to_mindex
+   from torch.utils.data import DataLoader
+   
+   # Load multiple AnnData files in backed mode (memory-efficient)
+   adatas = [
+       ad.read_h5ad("plate1.h5ad", backed='r'),
+       ad.read_h5ad("plate2.h5ad", backed='r'),
+   ]
+   collection = AnnCollection(adatas)
+   
+   # Create dataset with adata_to_mindex to materialize backed data
+   dataset = scDataset(
+       collection,
+       BlockShuffling(block_size=32),
+       batch_size=64,
+       fetch_factor=32,
+       fetch_transform=adata_to_mindex  # Calls to_adata() internally
+   )
+   
+   loader = DataLoader(dataset, batch_size=None, num_workers=8, prefetch_factor=33)
+
+See :doc:`examples` for a complete AnnCollection pipeline with transforms.
+
 HuggingFace Datasets
 ~~~~~~~~~~~~~~~~~~~~
 
@@ -147,22 +180,54 @@ HuggingFace Datasets
 Performance Optimization
 -------------------------
 
-For large datasets, you can optimize performance using these parameters:
+For optimal performance with large datasets, consider these guidelines:
+
+**Automatic Configuration**
+
+Use :func:`~scdataset.experimental.suggest_parameters` for automatic tuning:
+
+.. code-block:: python
+
+   from scdataset.experimental import suggest_parameters
+   
+   params = suggest_parameters(data_collection, batch_size=64)
+   print(params)  # {'fetch_factor': 64, 'block_size': 32, 'num_workers': 8}
+
+**Manual Tuning Guidelines**
+
+1. **prefetch_factor**: Set to ``fetch_factor + 1`` in DataLoader to trigger the 
+   next fetch while processing the current one.
+
+2. **num_workers**: 4-12 workers typically works well for most systems. Start with 
+   4 and increase if GPU utilization is low.
+
+3. **fetch_factor**: Can be large (e.g., 64, 128, or even 256) if you have enough 
+   memory. Larger values amortize I/O overhead but increase memory usage.
+
+4. **block_size**: Tune based on ``fetch_factor`` to balance randomness vs throughput:
+   
+   - ``block_size = fetch_factor``: Best tradeoff between randomness and throughput
+   - ``block_size = fetch_factor / 2`` or ``/ 4``: Conservative, good randomness
+   - ``block_size = fetch_factor * 2``: Higher throughput, less randomness
+   - Going beyond the above values has diminishing returns.
+
+**Example Configuration**
 
 .. code-block:: python
 
    dataset = scDataset(
        data,
-       BlockShuffling(block_size=4),
+       BlockShuffling(block_size=256),
        batch_size=64,
-       fetch_factor=16,  # Fetch 16 batches at once
+       fetch_factor=256,                 # Large fetch for efficiency
    )
    
    loader = DataLoader(
        dataset,
        batch_size=None,
-       num_workers=12,        # Multiple workers for parallel loading
-       prefetch_factor=17,    # fetch_factor + 1
+       num_workers=8,           # 4-12 workers typically optimal
+       prefetch_factor=257,      # fetch_factor + 1
+       pin_memory=True,         # For GPU training
    )
 
 Data Transforms
@@ -171,14 +236,14 @@ Data Transforms
 You can apply transforms at different stages:
 
 .. code-block:: python
-
-   def normalize_batch(batch):
-       # Apply per-batch normalization
-       return (batch - batch.mean()) / batch.std()
    
    def preprocess_fetch(data):
        # Apply to fetched data before batching
        return data.astype(np.float32)
+
+   def normalize_batch(batch):
+       # Apply per-batch normalization
+       return (batch - batch.mean()) / batch.std()
    
    dataset = scDataset(
        data,

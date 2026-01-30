@@ -1,7 +1,7 @@
 Changelog
 =========
 
-[0.3.0] - 2025-01-16
+[0.3.0] - 2025-01-30
 ---------------------
 
 **Major Features**
@@ -10,7 +10,6 @@ Changelog
 * **Native DDP support**: Full Distributed Data Parallel support with round-robin
   fetch distribution across ranks. Auto-detects ``torch.distributed`` settings.
   
-  * Weighted sampling works with DDP (first implementation to our knowledge)
   * All sampling strategies (Streaming, BlockShuffling, BlockWeightedSampling, 
     ClassBalancedSampling) work seamlessly with DDP
   * No ``DistributedSampler`` needed - partitioning handled internally
@@ -19,6 +18,7 @@ Changelog
   
   * ``adata_to_mindex()`` - Transform AnnData/AnnCollection to MultiIndexable
   * ``hf_tahoe_to_tensor()`` - Convert HuggingFace sparse data to dense tensors
+  * ``bionemo_to_tensor()`` - Convert BioNemo data format to tensors
 
 * **Auto-configuration module** (``scdataset.experimental.auto_config``):
   
@@ -27,14 +27,6 @@ Changelog
 
 * **Training experiments module** (``training_experiments/``): Comprehensive framework
   for benchmarking data loading strategies on the Tahoe-100M dataset
-
-* **Benchmark plotting utilities** (``benchmarks/plot_utils.py``): Plotting functions for visualizing benchmark results:
-  
-  * ``plot_throughput()`` - Create throughput plots (samples/sec vs block size)
-  * ``plot_batch_entropy()`` - Create batch entropy plots for shuffling quality analysis
-  * ``plot_block_size_by_fetch_factor()`` - General-purpose plotting function
-  * ``generate_all_benchmark_plots()`` - Generate all standard plots at once
-  * Interactive Jupyter notebook (``benchmarks/plots.ipynb``) for plot generation
 
 **Bug Fixes**
 ~~~~~~~~~~~~~
@@ -70,12 +62,6 @@ Changelog
   * Tutorial notebook (``tahoe_tutorial.ipynb``) now available in docs
   * Notebooks are rendered without execution for faster builds
 
-* **Doctest integration for documentation examples**:
-  
-  * Added ``sphinx.ext.doctest`` extension for testing code blocks in docs
-  * New ``tests/test_docstrings.py`` for testing module docstrings
-  * Documentation code examples are now automatically tested
-
 * **Comprehensive test suite**:
   
   * Tests for all strategies, MultiIndexable, scDataset, and auto_config
@@ -90,11 +76,6 @@ Changelog
   * Comprehensive AnnCollection example in examples
   * Documentation badge added to README and docs
   * Updated benchmarks README with utility documentation
-
-**Changed**
-~~~~~~~~~~~
-
-* **Added BlockWeightedSampling to benchmarks**: Now evaluates all sampling strategies
 
 **Dependencies**
 ~~~~~~~~~~~~~~~~

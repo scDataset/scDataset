@@ -1,12 +1,18 @@
 Distributed & Parallel Training
 ================================
 
-``scDataset`` provides native support for distributed and parallel training with 
-PyTorch. This includes:
+.. versionadded:: 0.3.0
 
-- **DistributedDataParallel (DDP)**: Multi-GPU, multi-node training
-- **DataParallel (DP)**: Simple multi-GPU on single node
+``scDataset`` provides native support for distributed and parallel training with 
+PyTorch. All three parallel/distributed modalities work automatically and are 
+handled internally by ``scDataset``:
+
 - **DataLoader multiprocessing**: ``num_workers`` for parallel data loading
+- **DataParallel (DP)**: Simple multi-GPU on single node
+- **DistributedDataParallel (DDP)**: Multi-GPU, multi-node training 
+
+No special configuration is required, ``scDataset`` auto-detects the training 
+environment and partitions data appropriately.
 
 How DDP Works
 -------------
@@ -54,6 +60,7 @@ Basic DDP Setup
             adata,
             BlockShuffling(block_size=64),
             batch_size=128,
+            fetch_factor=64,
             fetch_callback=my_fetch_fn
         )
         
@@ -61,7 +68,8 @@ Basic DDP Setup
         loader = DataLoader(
             dataset,
             batch_size=None,  # Batching handled by scDataset
-            num_workers=2
+            num_workers=4,
+            prefetch_factor=65  # fetch_factor + 1
         )
         
         # Standard DDP model setup
@@ -69,7 +77,6 @@ Basic DDP Setup
         model = DDP(model, device_ids=[local_rank])
         
         for epoch in range(num_epochs):
-            # No set_epoch needed! Shuffling changes automatically each epoch.
             for batch in loader:
                 batch = batch.to(local_rank)
                 # Training code here
@@ -93,6 +100,7 @@ environment variables:
         adata,
         BlockShuffling(block_size=64),
         batch_size=128,
+        fetch_factor=64,
         fetch_callback=my_fetch_fn,
         rank=2,          # This worker's rank (0-indexed)
         world_size=4     # Total number of workers
@@ -123,14 +131,17 @@ independently without communication during data loading.
 Automatic Epoch Handling
 ------------------------
 
-.. versionadded:: 0.3.0
-
 ``scDataset`` automatically increments an internal epoch counter each time the 
 dataset is iterated. This means different shuffling happens automatically each epoch.
 
+.. note::
+   Unlike PyTorch's ``DistributedSampler``, you do **not** need to call ``set_epoch()``
+   before each epoch. ``scDataset`` handles this internally by combining the base seed
+   with an auto-incrementing epoch counter.
+
 .. code-block:: python
 
-    # Different shuffling each epoch automatically.
+    # Different shuffling each epoch automatically - no set_epoch() needed!
     for epoch in range(100):
         for batch in loader:
             train_step(batch)
@@ -195,12 +206,13 @@ Here's a complete example with all components:
         # Create dataset - DDP handled automatically
         dataset = scDataset(
             adata,
-            BlockShuffling(block_size=256),
+            BlockShuffling(block_size=32),
+            fetch_factor=32,
             batch_size=512,
             fetch_callback=lambda d, idx: adata_to_mindex(d[idx])
         )
         
-        loader = DataLoader(dataset, batch_size=None, num_workers=4)
+        loader = DataLoader(dataset, batch_size=None, num_workers=4, prefetch_factor=33)
         
         # Model setup
         model = nn.Sequential(
@@ -245,25 +257,18 @@ provide out of the box.
 **The Problem with PyTorch's Approach**
 
 PyTorch provides ``WeightedRandomSampler`` for handling class imbalance and 
-``DistributedSampler`` for distributed training, but these two components do not 
-work together natively. This limitation has been a persistent challenge in the 
-PyTorch ecosystem:
-
-- ``DistributedSampler`` partitions data deterministically across processes
-- ``WeightedRandomSampler`` uses probabilistic multinomial sampling
-- Combining them naively leads to incorrect behavior or overlapping data across GPUs
-
-The community has produced various workarounds (e.g., ``DistributedSamplerWrapper``
-from Catalyst), but these require careful seed management and have subtle edge cases.
-As of January 2026, there is an `open PR in PyTorch <https://github.com/pytorch/pytorch/pull/150182>`_ 
-to add ``DistributedWeightedRandomSampler``, but this has not yet been merged.
+``DistributedSampler`` for distributed training, but these two samplers are 
+incompatible with each other. This has been a `long-standing issue 
+<https://github.com/pytorch/pytorch/issues/23430>`_ in the PyTorch ecosystem. 
+While a `DistributedWeightedRandomSampler PR <https://github.com/pytorch/pytorch/pull/150182>`_ 
+exists, it remains unmerged as of January 2026.
 
 **scDataset's Solution**
 
 With ``scDataset``, weighted sampling and distributed training are **decoupled by design**.
 The sampling strategy operates on the data collection level, and DDP partitioning 
-is applied automatically on top of that. This means you can use any strategy—including
-``BlockWeightedSampling`` and ``ClassBalancedSampling``—without any special configuration:
+is applied automatically on top of that. This means you can use any strategy, including
+``BlockWeightedSampling`` and ``ClassBalancedSampling``, without any special configuration:
 
 .. code-block:: python
 
@@ -283,34 +288,12 @@ is applied automatically on top of that. This means you can use any strategy—i
             block_size=64
         ),
         batch_size=128,
+        fetch_factor=64,
         fetch_callback=my_fetch_fn
     )
     
     # Each GPU gets a different portion of the weighted-sampled data
-    loader = DataLoader(dataset, batch_size=None, num_workers=4)
-
-**Class-Balanced Sampling in DDP**
-
-For the common use case of handling class imbalance, ``ClassBalancedSampling`` 
-automatically computes weights inversely proportional to class frequencies:
-
-.. code-block:: python
-
-    from scdataset import scDataset, ClassBalancedSampling
-    
-    # Automatically balances rare cell types
-    dataset = scDataset(
-        adata,
-        ClassBalancedSampling(
-            label_key="cell_type",  # Column in adata.obs
-            block_size=64,
-            smoothing=0.1  # Prevents over-sampling of very rare classes
-        ),
-        batch_size=128,
-        fetch_callback=my_fetch_fn
-    )
-    
-    # Works seamlessly in DDP - rare classes are represented on all GPUs
+    loader = DataLoader(dataset, batch_size=None, num_workers=4, prefetch_factor=65)
 
 **Why This Matters**
 
@@ -322,8 +305,9 @@ because:
    indices, and DDP partitioning is applied afterward
 2. **Deterministic seeding**: All ranks use the same base seed plus epoch offset,
    ensuring coordinated but different data across GPUs
-3. **On-disk efficiency**: Unlike PyTorch's in-memory approach, ``scDataset`` reads
-   only the needed samples from disk, making large-scale weighted sampling practical
+3. **On-disk efficiency**: By fetching only the required indices, ``scDataset`` 
+   avoids loading the entire dataset into memory, making large-scale weighted 
+   sampling practical even for billion-cell datasets
 
 DDP with Any Strategy
 ---------------------
@@ -360,7 +344,7 @@ partitioning layer is orthogonal to the strategy layer:
     dataset3 = scDataset(adata, BlockWeightedSampling(weights=w), ...)
     
     # Class-balanced
-    dataset4 = scDataset(adata, ClassBalancedSampling(label_key="ct"), ...)
+    dataset4 = scDataset(adata, ClassBalancedSampling(labels=l), ...)
     
     # All automatically partition data across GPUs when run with torchrun
 
@@ -402,7 +386,8 @@ preprocessing while the GPU trains on the current batch.
     
     dataset = scDataset(
         data,
-        BlockShuffling(block_size=64),
+        BlockShuffling(block_size=32),
+        fetch_factor=64,
         batch_size=128
     )
     
@@ -411,7 +396,7 @@ preprocessing while the GPU trains on the current batch.
         dataset,
         batch_size=None,  # IMPORTANT: batching handled by scDataset
         num_workers=4,     # Use 4 worker processes
-        prefetch_factor=2  # Prefetch 2 batches per worker
+        prefetch_factor=65  # Prefetch 65 batches per worker
     )
     
     for batch in loader:
@@ -484,10 +469,11 @@ than DDP for large-scale training.
     dataset = scDataset(
         data,
         BlockShuffling(block_size=64),
-        batch_size=128
+        batch_size=128,
+        fetch_factor=64
     )
     
-    loader = DataLoader(dataset, batch_size=None, num_workers=4)
+    loader = DataLoader(dataset, batch_size=None, num_workers=4, prefetch_factor=65)
     
     # Wrap model with DataParallel
     model = nn.Sequential(
@@ -542,5 +528,5 @@ Further Reading
 - `PyTorch DDP Tutorial <https://pytorch.org/tutorials/intermediate/ddp_tutorial.html>`_
 - `PyTorch DistributedSampler Documentation <https://pytorch.org/docs/stable/data.html#torch.utils.data.distributed.DistributedSampler>`_
 - `PyTorch DataLoader num_workers <https://pytorch.org/docs/stable/data.html#torch.utils.data.DataLoader>`_
-- `PyTorch Issue #77154 <https://github.com/pytorch/pytorch/issues/77154>`_ - Feature request for DistributedWeightedRandomSampler
-- `PyTorch PR #150182 <https://github.com/pytorch/pytorch/pull/150182>`_ - Proposed DistributedWeightedRandomSampler (not yet merged)
+- `PyTorch Issue #23430 <https://github.com/pytorch/pytorch/issues/23430>`_ - Feature request for DistributedWeightedRandomSampler
+- `PyTorch PR #150182 <https://github.com/pytorch/pytorch/pull/150182>`_ - Proposed DistributedWeightedRandomSampler (not merged)

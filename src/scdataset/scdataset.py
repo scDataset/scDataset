@@ -39,7 +39,7 @@ class scDataset(IterableDataset):
         order and selection of samples.
     batch_size : int
         Number of samples per minibatch. Must be positive.
-    fetch_factor : int, default=1
+    fetch_factor : int, default=16
         Multiplier for fetch size relative to batch size. Higher values may
         improve I/O efficiency by fetching more data at once.
     drop_last : bool, default=False
@@ -276,9 +276,19 @@ class scDataset(IterableDataset):
             )
 
         # Rank 0 generates seed and broadcasts to all ranks
-        seed_tensor = torch.zeros(1, dtype=torch.int64)
-        if self.rank == 0:
-            seed_tensor[0] = torch.randint(0, 2**31, (1,)).item()
+        # Use device-appropriate tensor for the backend (NCCL needs CUDA tensors)
+        backend = dist.get_backend()
+        if backend == "nccl" and torch.cuda.is_available():
+            device = torch.device(f"cuda:{self.rank}")
+            seed_tensor = torch.zeros(1, dtype=torch.int64, device=device)
+            if self.rank == 0:
+                seed_tensor[0] = torch.randint(0, 2**31, (1,), device=device).item()
+        else:
+            # gloo and other backends work with CPU tensors
+            seed_tensor = torch.zeros(1, dtype=torch.int64)
+            if self.rank == 0:
+                seed_tensor[0] = torch.randint(0, 2**31, (1,)).item()
+
         dist.broadcast(seed_tensor, src=0)
 
         return int(seed_tensor.item())

@@ -768,10 +768,6 @@ class BlockWeightedSampling(SamplingStrategy):
         -----
         When ``replace=False``, sampling is performed in rounds of size
         ``sampling_size`` until the desired ``total_size`` is reached.
-        This helps avoid memory issues with large datasets.
-
-        The selected indices are sorted before block shuffling to ensure
-        consistent behavior across different random seeds.
 
         Examples
         --------

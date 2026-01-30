@@ -16,7 +16,7 @@ Built-in Transform Functions
 
 .. code-block:: python
 
-    from scdataset.transforms import adata_to_mindex, hf_tahoe_to_tensor
+    from scdataset.transforms import adata_to_mindex, hf_tahoe_to_tensor, bionemo_to_tensor
 
 **adata_to_mindex**
     Transforms an AnnData batch into a :class:`~scdataset.MultiIndexable` object.
@@ -25,6 +25,10 @@ Built-in Transform Functions
 **hf_tahoe_to_tensor**
     Converts HuggingFace sparse gene expression data to dense tensors or 
     :class:`~scdataset.MultiIndexable` objects.
+
+**bionemo_to_tensor**
+    Fetch callback for BioNeMo's ``SingleCellMemMapDataset``. Handles the sparse
+    matrix format used by BioNeMo and returns dense tensors. Requires ``bionemo-scdl``.
 
 See the :ref:`examples below <builtin-transform-examples>` for detailed usage.
 
@@ -161,7 +165,7 @@ Use :func:`~scdataset.transforms.adata_to_mindex` for AnnData and AnnCollection:
 Built-in: hf_tahoe_to_tensor
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Use :func:`~scdataset.transforms.hf_tahoe_to_tensor` for HuggingFace sparse datasets:
+Use :func:`~scdataset.transforms.hf_tahoe_to_tensor` for Tahoe-100M HuggingFace sparse dataset:
 
 .. code-block:: python
 
@@ -186,6 +190,34 @@ Use :func:`~scdataset.transforms.hf_tahoe_to_tensor` for HuggingFace sparse data
         output_format='dict', 
         obs_columns=['cell_type', 'batch']
     )
+
+Built-in: bionemo_to_tensor
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Use :func:`~scdataset.transforms.bionemo_to_tensor` for BioNeMo's ``SingleCellMemMapDataset``:
+
+.. code-block:: python
+
+    from scdataset import scDataset, BlockShuffling
+    from scdataset.transforms import bionemo_to_tensor
+    from bionemo.scdl.io.single_cell_memmap_dataset import SingleCellMemMapDataset
+    
+    # Load BioNeMo dataset
+    bionemo_data = SingleCellMemMapDataset(data_path='/path/to/data')
+    
+    # Use bionemo_to_tensor as fetch_callback (not fetch_transform)
+    dataset = scDataset(
+        bionemo_data,
+        BlockShuffling(block_size=32),
+        batch_size=64,
+        fetch_factor=32,
+        fetch_callback=bionemo_to_tensor  # Handles sparse matrix collation
+    )
+
+.. note::
+   ``bionemo_to_tensor`` is a **fetch_callback**, not a fetch_transform, because it 
+   needs access to both the data collection and indices to handle BioNeMo's sparse 
+   matrix format correctly. Requires ``pip install bionemo-scdl``.
 
 Custom Transform Example
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -309,83 +341,6 @@ batch_transform
         batch_transform=log_transform
     )
 
-Complete Pipeline Example
--------------------------
-
-Here's a complete example showing all four hooks working together:
-
-.. code-block:: python
-
-    from scdataset import scDataset, BlockShuffling, MultiIndexable
-    from torch.utils.data import DataLoader
-    from functools import partial
-    import torch
-    import scipy.sparse as sp
-    
-    # fetch_callback: Custom indexing for AnnCollection
-    def ann_fetch_callback(collection, indices):
-        """Fetch from AnnCollection with sorted indices for better I/O."""
-        # scDataset already sorts indices, but we could add logging here
-        return collection[indices]
-    
-    # fetch_transform: Convert to MultiIndexable
-    def ann_fetch_transform(batch, columns=None):
-        """Materialize AnnData and create MultiIndexable."""
-        batch = batch.to_memory()
-        X = batch.X
-        if sp.issparse(X):
-            X = X.toarray()
-        
-        data_dict = {'X': X}
-        if columns:
-            for col in columns:
-                data_dict[col] = batch.obs[col].values
-        
-        return MultiIndexable(data_dict)
-    
-    # batch_callback: Default is fine for MultiIndexable
-    # (MultiIndexable supports standard indexing)
-    
-    # batch_transform: Normalize and convert to tensors
-    def to_tensor_batch(batch):
-        """Convert batch to training-ready tensors."""
-        X = torch.from_numpy(batch['X']).float()
-        y = torch.from_numpy(batch['cell_type']).long()
-        
-        # Log normalize
-        X = torch.log1p(X)
-        
-        # Z-score normalize per gene (column)
-        X = (X - X.mean(dim=0)) / (X.std(dim=0) + 1e-8)
-        
-        return X, y
-    
-    # Create dataset with all transforms
-    dataset = scDataset(
-        ann_collection,
-        strategy=BlockShuffling(block_size=8),
-        batch_size=64,
-        fetch_factor=16,
-        fetch_callback=ann_fetch_callback,
-        fetch_transform=partial(ann_fetch_transform, columns=['cell_type']),
-        batch_transform=to_tensor_batch
-    )
-    
-    # Use with DataLoader
-    loader = DataLoader(
-        dataset,
-        batch_size=None,  # scDataset handles batching
-        num_workers=4,
-        prefetch_factor=17  # fetch_factor + 1
-    )
-    
-    # Training loop
-    for X, y in loader:
-        # X: (64, n_genes) normalized tensor
-        # y: (64,) cell type labels
-        loss = model(X, y)
-        ...
-
 Best Practices
 --------------
 
@@ -416,15 +371,15 @@ Common Use Cases
 +------------------------+------------------+-------------------+
 | Load backed AnnData    | ✓                |                   |
 +------------------------+------------------+-------------------+
-| Per-sample normalize   |                  | ✓                 |
+| Per-sample normalize   | ✓                | ✓                 |
 +------------------------+------------------+-------------------+
-| Data augmentation      |                  | ✓                 |
+| Data augmentation      | ✓                | ✓                 |
 +------------------------+------------------+-------------------+
-| Convert to tensor      |                  | ✓                 |
+| Convert to tensor      | ✓                | ✓                 |
 +------------------------+------------------+-------------------+
 | Add labels from obs    | ✓                |                   |
 +------------------------+------------------+-------------------+
-| Log transformation     |                  | ✓                 |
+| Log transformation     | ✓                | ✓                 |
 +------------------------+------------------+-------------------+
 
 See Also

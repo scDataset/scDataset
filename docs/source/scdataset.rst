@@ -36,6 +36,7 @@ Transform Functions
 
    adata_to_mindex
    hf_tahoe_to_tensor
+   bionemo_to_tensor
 
 Sampling Strategies
 -------------------

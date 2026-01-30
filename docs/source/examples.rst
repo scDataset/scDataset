@@ -31,13 +31,14 @@ Working with AnnData
     # Create dataset with block shuffling
     dataset = scDataset(
         adata,
-        BlockShuffling(block_size=8),
+        BlockShuffling(block_size=16),
         batch_size=64,
+        fetch_factor=16,
         fetch_callback=fetch_anndata
     )
 
     # Use with DataLoader
-    loader = DataLoader(dataset, batch_size=None, num_workers=4)
+    loader = DataLoader(dataset, batch_size=None, num_workers=4, prefetch_factor=17)
 
     for batch in loader:
         print(f"Processing batch of shape: {batch.shape}")
@@ -104,7 +105,7 @@ single-cell studies spanning multiple files (e.g., different patients, batches, 
             Contains 'X' (expression matrix) and any requested columns
         """
         # Materialize backed data into memory
-        batch = batch.to_memory()
+        batch = batch.to_adata()
         
         # Get expression matrix
         X = batch.X
@@ -139,7 +140,7 @@ single-cell studies spanning multiple files (e.g., different patients, batches, 
     # Create dataset with transforms
     dataset = scDataset(
         collection,
-        strategy=BlockShuffling(block_size=8),
+        strategy=BlockShuffling(block_size=16),
         batch_size=64,
         fetch_factor=16,
         fetch_transform=partial(adata_to_mindex, columns=['plate']),
@@ -185,7 +186,7 @@ single-cell studies spanning multiple files (e.g., different patients, batches, 
     # Training dataset with shuffling
     train_dataset = scDataset(
         collection,
-        BlockShuffling(indices=train_idx, block_size=8),
+        BlockShuffling(indices=train_idx, block_size=16),
         batch_size=64,
         fetch_factor=16,
         fetch_transform=fetch_fn
@@ -200,8 +201,8 @@ single-cell studies spanning multiple files (e.g., different patients, batches, 
         fetch_transform=fetch_fn
     )
     
-    train_loader = DataLoader(train_dataset, batch_size=None, num_workers=4)
-    val_loader = DataLoader(val_dataset, batch_size=None, num_workers=4)
+    train_loader = DataLoader(train_dataset, batch_size=None, num_workers=4, prefetch_factor=17)
+    val_loader = DataLoader(val_dataset, batch_size=None, num_workers=4, prefetch_factor=17)
 
 **Memory-Efficient Tips for AnnCollection:**
 
@@ -212,8 +213,6 @@ single-cell studies spanning multiple files (e.g., different patients, batches, 
 3. **Higher fetch_factor**: For backed data, use ``fetch_factor=16`` or higher to amortize I/O overhead.
 
 4. **Block shuffling**: Use ``BlockShuffling`` with appropriate block size to balance randomness vs I/O efficiency.
-
-5. **Common genes**: Use ``join_vars='inner'`` when creating ``AnnCollection`` to ensure all files have the same features.
 
 Class-Balanced Training
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -230,12 +229,12 @@ Class-Balanced Training
     strategy = ClassBalancedSampling(
         cell_types, 
         total_size=10000,  # Generate 10k balanced samples per epoch
-        block_size=8
+        block_size=16
     )
 
-    dataset = scDataset(adata, strategy, batch_size=32, fetch_callback=fetch_anndata)
+    dataset = scDataset(adata, strategy, batch_size=32, fetch_factor=32, fetch_callback=fetch_anndata)
 
-    loader = DataLoader(dataset, batch_size=None, num_workers=4)
+    loader = DataLoader(dataset, batch_size=None, num_workers=4, prefetch_factor=33)
 
     # Training loop with balanced batches
     for epoch in range(10):
@@ -280,12 +279,13 @@ synchronized during indexing:
     # Create dataset - all modalities will be indexed together
     dataset = scDataset(
         multimodal_data,
-        BlockShuffling(block_size=8),
-        batch_size=32
+        BlockShuffling(block_size=16),
+        batch_size=32,
+        fetch_factor=16
     )
 
     # Use with DataLoader
-    loader = DataLoader(dataset, batch_size=None, num_workers=4)
+    loader = DataLoader(dataset, batch_size=None, num_workers=4, prefetch_factor=17)
 
     for batch in loader:
         genes = batch['genes']        # Shape: (32, 2000)
@@ -312,7 +312,7 @@ Alternative approach with custom fetch function (for AnnData objects):
 
     dataset = scDataset(
         adata,
-        BlockShuffling(block_size=8),
+        BlockShuffling(block_size=16),
         batch_size=32,
         fetch_callback=fetch_multimodal
     )
@@ -330,9 +330,9 @@ Memory-Efficient Data Loading
     # For very large datasets, use higher fetch factors
     dataset = scDataset(
         large_data_collection,
-        BlockShuffling(block_size=4),
+        BlockShuffling(block_size=16),
         batch_size=64,
-        fetch_factor=16,  # Fetch 16 batches worth of data at once
+        fetch_factor=256,  # Fetch 256 batches worth of data at once
     )
 
     # Configure DataLoader for optimal performance
@@ -340,8 +340,8 @@ Memory-Efficient Data Loading
         dataset,
         batch_size=None,
         num_workers=12,          # Use multiple workers
-        prefetch_factor=17,      # fetch_factor + 1
-        pin_memory=True,        # For GPU training
+        prefetch_factor=257,     # fetch_factor + 1
+        pin_memory=True,         # For GPU training
     )
 
 Subset Training and Validation
@@ -358,22 +358,24 @@ Subset Training and Validation
     # Training dataset
     train_dataset = scDataset(
         data,
-        BlockShuffling(indices=train_idx, block_size=8),
-        batch_size=64
+        BlockShuffling(indices=train_idx, block_size=16),
+        batch_size=64,
+        fetch_factor=32
     )
 
     # Validation dataset (streaming for deterministic evaluation)
     val_dataset = scDataset(
         data,
         Streaming(indices=val_idx),
-        batch_size=64
+        batch_size=64,
+        fetch_factor=32
     )
 
     # Training loader
-    train_loader = DataLoader(train_dataset, batch_size=None)
+    train_loader = DataLoader(train_dataset, batch_size=None, num_workers=4, prefetch_factor=33)
 
     # Validation loader
-    val_loader = DataLoader(val_dataset, batch_size=None)
+    val_loader = DataLoader(val_dataset, batch_size=None, num_workers=4, prefetch_factor=33)
 
     # Training loop
     for epoch in range(num_epochs):
@@ -403,7 +405,7 @@ On-the-Fly Normalization
 
     dataset = scDataset(
         data,
-        BlockShuffling(block_size=8),
+        BlockShuffling(block_size=16),
         batch_size=64,
         batch_transform=lambda x: standardize_genes(log_normalize(x))
     )
@@ -430,7 +432,7 @@ Data Augmentation
 
     dataset = scDataset(
         data,
-        BlockShuffling(block_size=8),
+        BlockShuffling(block_size=16),
         batch_size=64,
         batch_transform=augment_batch
     )
@@ -462,10 +464,11 @@ Basic Usage
         hf_dataset,
         Streaming(),
         batch_size=64,
+        fetch_factor=16,
         batch_callback=extract_hf_batch
     )
 
-    for batch in DataLoader(dataset, batch_size=None):
+    for batch in DataLoader(dataset, batch_size=None, num_workers=4, prefetch_factor=17):
         # batch will be a dictionary with dataset features
         print("Batch keys:", batch.keys())
         print("Batch size:", len(batch['text']))
@@ -496,7 +499,7 @@ Custom Processing for HuggingFace Data
 
     dataset = scDataset(
         hf_dataset,
-        BlockShuffling(block_size=8),
+        BlockShuffling(block_size=16),
         batch_size=64,
         batch_callback=extract_hf_batch,
         batch_transform=process_hf_batch
@@ -529,8 +532,8 @@ Basic MultiIndexable Usage
     data = MultiIndexable(X=features, y=labels)
 
     # Create dataset
-    dataset = scDataset(data, Streaming(), batch_size=64)
-    loader = DataLoader(dataset, batch_size=None)
+    dataset = scDataset(data, Streaming(), batch_size=64, fetch_factor=16)
+    loader = DataLoader(dataset, batch_size=None, num_workers=4, prefetch_factor=17)
 
     for batch in loader:
         X_batch = batch['X']  # or batch[0]
@@ -620,7 +623,7 @@ Integration with PyTorch Lightning
             # Create datasets
             self.train_dataset = scDataset(
                 self.data,
-                BlockShuffling(block_size=8, indices=train_idx),
+                BlockShuffling(block_size=16, indices=train_idx),
                 batch_size=self.batch_size
             )
             
